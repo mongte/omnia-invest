@@ -1,0 +1,48 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+
+    "strict": true,
+    "noEmit": true,
+    "emitDeclarationOnly": false,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    "paths": {
+      "@/app/*": ["src/app/*"],
+      "@/views/*": ["src/views/*"],
+      "@/widgets/*": ["src/widgets/*"],
+      "@/features/*": ["src/features/*"],
+      "@/entities/*": ["src/entities/*"],
+      "@/shared/*": ["src/shared/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx",
+
+    "../../apps/task-manager/.next/types/**/*.ts",
+    "../../dist/apps/task-manager/.next/types/**/*.ts",
+
+    "next-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "jest.config.ts",
+    "jest.config.cts",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
+}

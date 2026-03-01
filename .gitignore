@@ -1,5 +1,8 @@
 # See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
+# ai
+.agent
+
 # compiled output
 dist
 tmp
@@ -40,3 +43,27 @@ Thumbs.db
 
 .nx/cache
 .nx/workspace-data
+
+# Next.js
+.next
+out
+.next/
+build/
+
+# Environment variables
+.env
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# Vercel
+.vercel
+
+# Turborepo
+.turbo
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts

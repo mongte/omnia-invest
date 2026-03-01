@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@supabase/supabase-js": "^2.98.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/schematics": "^21.2.0",
+    "@nx/key": "^5.0.0",
+    "@nx/powerpack-license": "^5.0.0",
+    "@swc/wasm": "^1.15.18",
+    "ts-node": "^10.9.2"
+  }
+}
