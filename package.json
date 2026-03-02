@@ -4,7 +4,10 @@
   "license": "MIT",
   "scripts": {
     "dev:task-manager": "nx dev task-manager",
-    "build:task-manager": "nx build task-manager"
+    "build:task-manager": "nx build task-manager",
+    "mcp:start": "npx tsx apps/task-manager/src/mcp/index.ts",
+    "db:archive": "npx tsx apps/task-manager/src/scripts/archive-db.ts",
+    "db:load": "npx tsx apps/task-manager/src/scripts/load-db.ts"
   },
   "private": true,
   "devDependencies": {
@@ -27,6 +30,7 @@
     "typescript": "~5.9.2"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",

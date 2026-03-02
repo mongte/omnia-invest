@@ -1,5 +1,8 @@
+"use client";
+
 import { useEffect } from 'react';
 import { useTaskStore } from '@/entities/task';
+import { useAgentStore } from '@/entities/agent';
 import { TaskCard } from '@/features/task-management';
 
 const STYLES = {
@@ -14,10 +17,28 @@ export const TaskKanbanBoard = () => {
   
   const tasks = useTaskStore(state => state.tasks);
   const fetchTasks = useTaskStore(state => state.fetchTasks);
+  const fetchAgents = useAgentStore(state => state.fetchAgents);
 
   useEffect(() => {
+    // Initial fetch
     fetchTasks();
-  }, [fetchTasks]);
+    fetchAgents();
+
+    // Subscribe to real-time updates
+    const eventSource = new EventSource('/api/stream');
+    
+    eventSource.onmessage = (event) => {
+      console.log('SSE EVENT:', event.data);
+      if (event.data === 'update') {
+        fetchTasks();
+        fetchAgents();
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [fetchTasks, fetchAgents]);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">

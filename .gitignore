@@ -2,6 +2,7 @@
 
 # ai
 .agent
+omnia-invest-*-*.json
 
 # compiled output
 dist

@@ -1,0 +1,63 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Project Setup & Scaffolding",
+      "description": "Initialize Nx workspace, Next.js app, and basic layout.",
+      "status": "DONE",
+      "assigneeId": "agent-1",
+      "createdAt": "2026-02-28T13:43:53.230Z",
+      "updatedAt": "2026-02-28T13:43:53.230Z"
+    },
+    {
+      "id": "task-2",
+      "title": "Design System Construction",
+      "description": "Implement Button, Card, Badge with shadcn/ui and Tailwind.",
+      "status": "IN_REVIEW",
+      "assigneeId": "agent-1",
+      "createdAt": "2026-03-01T13:43:53.230Z",
+      "updatedAt": "2026-03-02T13:43:53.230Z"
+    },
+    {
+      "id": "task-3",
+      "title": "Local Database Setup",
+      "description": "Replace Supabase with local JSON filesystem logic.",
+      "status": "IN_PROGRESS",
+      "assigneeId": "agent-2",
+      "createdAt": "2026-03-02T13:43:53.230Z",
+      "updatedAt": "2026-03-02T13:43:53.230Z"
+    },
+    {
+      "id": "task-4",
+      "title": "Google Sheets Archiving API",
+      "description": "Build scripts to archive older project data into Google Sheets.",
+      "status": "TODO",
+      "assigneeId": "agent-2",
+      "createdAt": "2026-03-02T13:43:53.230Z",
+      "updatedAt": "2026-03-02T13:43:53.230Z"
+    }
+  ],
+  "agents": [
+    {
+      "id": "agent-1",
+      "name": "Frontend Architect",
+      "role": "Frontend",
+      "status": "IDLE",
+      "lastActiveAt": "2026-03-02T13:43:53.230Z"
+    },
+    {
+      "id": "agent-2",
+      "name": "Backend Expert",
+      "role": "Backend",
+      "status": "IDLE",
+      "lastActiveAt": "2026-03-02T13:43:53.230Z"
+    },
+    {
+      "id": "agent-3",
+      "name": "QA Specialist",
+      "role": "QA",
+      "status": "IDLE",
+      "lastActiveAt": "2026-03-02T13:43:53.230Z"
+    }
+  ]
+}
