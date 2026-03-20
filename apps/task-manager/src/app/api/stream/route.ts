@@ -4,12 +4,18 @@ import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const projectId = searchParams.get('projectId');
+
   const encoder = new TextEncoder();
   const customReadable = new ReadableStream({
     start(controller) {
-      const dbPath = path.join(process.cwd(), 'data', 'current_project.json');
-      
+      // Watch the project-specific DB file if projectId provided, otherwise fallback
+      const dbPath = projectId
+        ? path.join(process.cwd(), 'data', 'projects', `${projectId}.json`)
+        : path.join(process.cwd(), 'data', 'current_project.json');
+
       const notify = () => {
         try {
           controller.enqueue(encoder.encode(`data: update\n\n`));
@@ -31,13 +37,13 @@ export async function GET() {
           });
         }
       } catch (e) {
-         console.error("Failed to watch local DB file:", e);
+        console.error('Failed to watch project DB file:', e);
       }
 
       // Keep connection alive
       const timer = setInterval(() => {
         try {
-          controller.enqueue(encoder.encode(`:\n\n`)); // Spec: Comment keeps alive
+          controller.enqueue(encoder.encode(`:\n\n`)); // SSE comment keeps alive
         } catch {
           clearInterval(timer);
           if (watcher) watcher.close();
@@ -49,7 +55,7 @@ export async function GET() {
         clearInterval(timer);
         if (watcher) watcher.close();
       };
-    }
+    },
   });
 
   return new NextResponse(customReadable, {

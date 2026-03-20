@@ -77,7 +77,34 @@ export const TaskCard = ({ task }: { task: Task }) => {
           </div>
           <div className="flex flex-col gap-2 mt-2">
             <span className="text-sm font-semibold">Description:</span>
-            <p className="text-sm text-slate-600">{task.description}</p>
+            <div className="bg-slate-50 p-3 rounded-md max-h-[150px] overflow-y-auto text-sm text-slate-700 whitespace-pre-wrap">
+              {task.description}
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-2 mt-4 border-t pt-4">
+            <span className="text-sm font-semibold flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" /> Activity Log
+            </span>
+            <div className="flex flex-col gap-3 max-h-[250px] overflow-y-auto pr-2">
+              {(!task.comments || task.comments.length === 0) ? (
+                <span className="text-xs text-slate-400 italic">No activity recorded yet.</span>
+              ) : (
+                task.comments.map((comment) => (
+                  <div key={comment.id} className="flex flex-col gap-1 bg-white border border-slate-100 p-2.5 rounded-lg shadow-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-800">{comment.agentId}</span>
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">
+                      {comment.content}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </DialogContent>

@@ -4,115 +4,95 @@ import { Task } from '@/entities/task/model/types';
 import { Agent } from '@/entities/agent/model/types';
 
 const DB_DIR = path.join(process.cwd(), 'data');
-const DB_FILE = path.join(DB_DIR, 'current_project.json');
+const PROJECTS_FILE = path.join(DB_DIR, 'projects.json');
+const PROJECTS_DATA_DIR = path.join(DB_DIR, 'projects');
+
+export interface Project {
+  id: string;
+  title: string;
+  color: string;
+  icon?: string;
+}
 
 export interface DbSchema {
   tasks: Task[];
   agents: Agent[];
 }
 
-const DEFAULT_DB: DbSchema = {
-  tasks: [
-    {
-      id: 'task-1',
-      title: 'Project Setup & Scaffolding',
-      description: 'Initialize Nx workspace, Next.js app, and basic layout.',
-      status: 'DONE',
-      assigneeId: 'agent-1',
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    },
-    {
-      id: 'task-2',
-      title: 'Design System Construction',
-      description: 'Implement Button, Card, Badge with shadcn/ui and Tailwind.',
-      status: 'IN_REVIEW',
-      assigneeId: 'agent-1',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'task-3',
-      title: 'Local Database Setup',
-      description: 'Replace Supabase with local JSON filesystem logic.',
-      status: 'IN_PROGRESS',
-      assigneeId: 'agent-2',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'task-4',
-      title: 'Google Sheets Archiving API',
-      description: 'Build scripts to archive older project data into Google Sheets.',
-      status: 'TODO',
-      assigneeId: 'agent-2',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-  ],
-  agents: [
-    {
-      id: 'agent-pm',
-      name: 'Project Manager',
-      role: 'PM',
-      status: 'IDLE',
-      lastActiveAt: new Date().toISOString(),
-    },
-    {
-      id: 'agent-fe-1',
-      name: 'Frontend Agent 1',
-      role: 'Frontend',
-      status: 'IDLE',
-      lastActiveAt: new Date().toISOString(),
-    },
-    {
-      id: 'agent-fe-2',
-      name: 'Frontend Agent 2',
-      role: 'Frontend',
-      status: 'IDLE',
-      lastActiveAt: new Date().toISOString(),
-    },
-    {
-      id: 'agent-be-1',
-      name: 'Backend Expert',
-      role: 'Backend',
-      status: 'IDLE',
-      lastActiveAt: new Date().toISOString(),
-    },
-    {
-      id: 'agent-qa',
-      name: 'QA Specialist',
-      role: 'QA',
-      status: 'IDLE',
-      lastActiveAt: new Date().toISOString(),
-    }
-  ],
-};
 
-export const getDb = async (): Promise<DbSchema> => {
+
+const getProjectDbFile = (projectId: string) =>
+  path.join(PROJECTS_DATA_DIR, `${projectId}.json`);
+
+export const getDb = async (projectId: string): Promise<DbSchema> => {
   try {
-    await fs.mkdir(DB_DIR, { recursive: true });
+    await fs.mkdir(PROJECTS_DATA_DIR, { recursive: true });
+    const file = getProjectDbFile(projectId);
     try {
-      const data = await fs.readFile(DB_FILE, 'utf-8');
+      const data = await fs.readFile(file, 'utf-8');
       return JSON.parse(data) as DbSchema;
     } catch (e: any) {
       if (e.code === 'ENOENT') {
-        await saveDb(DEFAULT_DB);
-        return DEFAULT_DB;
+        // 파일이 없으면 빈 DB로 초기화 (새 프로젝트는 태스크 없이 시작)
+        const emptyDb: DbSchema = { tasks: [], agents: [] };
+        await saveDb(projectId, emptyDb);
+        return emptyDb;
       }
       throw e;
     }
   } catch (error) {
-    console.error('Failed to read Local DB:', error);
-    return DEFAULT_DB;
+    console.error('Failed to read project DB:', error);
+    return { tasks: [], agents: [] };
   }
 };
 
-export const saveDb = async (data: DbSchema): Promise<void> => {
+export const saveDb = async (projectId: string, data: DbSchema): Promise<void> => {
+  try {
+    await fs.mkdir(PROJECTS_DATA_DIR, { recursive: true });
+    await fs.writeFile(getProjectDbFile(projectId), JSON.stringify(data, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Failed to write project DB:', error);
+  }
+};
+
+export const deleteProjectDb = async (projectId: string): Promise<void> => {
+  try {
+    const file = getProjectDbFile(projectId);
+    await fs.unlink(file).catch(() => {}); // ignore if not exists
+  } catch (error) {
+    console.error('Failed to delete project DB file:', error);
+  }
+};
+
+export const getProjectsList = async (): Promise<Project[]> => {
   try {
     await fs.mkdir(DB_DIR, { recursive: true });
-    await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    try {
+      const data = await fs.readFile(PROJECTS_FILE, 'utf-8');
+      return JSON.parse(data) as Project[];
+    } catch (e: any) {
+      if (e.code === 'ENOENT') {
+        const defaultProjects: Project[] = [
+          { id: 'proj-alpha', title: 'Project Alpha', color: 'blue' },
+          { id: 'proj-beta', title: 'Beta Service', color: 'orange' },
+          { id: 'proj-gamma', title: 'Gamma Tool', color: 'purple' },
+        ];
+        await saveProjectsList(defaultProjects);
+        return defaultProjects;
+      }
+      throw e;
+    }
   } catch (error) {
-    console.error('Failed to write Local DB:', error);
+    console.error('Failed to read Projects DB:', error);
+    return [];
+  }
+};
+
+export const saveProjectsList = async (projects: Project[]): Promise<void> => {
+  try {
+    await fs.mkdir(DB_DIR, { recursive: true });
+    await fs.writeFile(PROJECTS_FILE, JSON.stringify(projects, null, 2), 'utf-8');
+  } catch (error) {
+    console.error('Failed to write Projects DB:', error);
   }
 };

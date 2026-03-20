@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "dev:task-manager": "nx dev task-manager",
-    "build:task-manager": "nx build task-manager",
-    "mcp:start": "npx tsx apps/task-manager/src/mcp/index.ts",
+    "dev:task-manager": "nx run task-manager:dev",
+    "build:task-manager": "nx run task-manager:build",
+    "lint:task-manager": "nx run task-manager:lint",
     "db:archive": "npx tsx apps/task-manager/src/scripts/archive-db.ts",
     "db:load": "npx tsx apps/task-manager/src/scripts/load-db.ts"
   },
@@ -15,6 +15,7 @@
     "@nx/next": "^22.5.3",
     "@nx/react": "^22.5.3",
     "@nx/workspace": "22.5.3",
+    "@playwright/test": "^1.58.2",
     "@swc-node/register": "~1.11.1",
     "@swc/cli": "~0.8.0",
     "@swc/core": "~1.15.5",
@@ -30,7 +31,6 @@
     "typescript": "~5.9.2"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",

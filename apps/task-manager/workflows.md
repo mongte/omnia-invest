@@ -30,14 +30,14 @@ Agents MUST complete each phase sequentially and verify success before proceedin
 1. **Assemble Pages:** Combine widgets into complete views within the `src/pages` layer.
 2. **Configure Routes:** Map the pages to Next.js App Router paths in `src/app`.
 
-## Phase 5: MCP & Antigravity Integration
+## Phase 5: Agent HTTP API & SSE Integration
 
-1. **MCP Client Setup:** Implement the MCP client logic in `src/shared/api` to communicate with the local Antigravity server.
-2. **State Synchronization:** Connect the MCP data streams to the React state/context to reflect real-time Multi-Agent task progress on the UI.
-3. **Action Triggers:** Ensure UI actions (like task creation) are correctly formatted and sent to the Antigravity system via MCP.
+1. **REST API Core Setup:** Implement local Next.js Route Handlers (`GET/POST /api/tasks`, `/api/agents`) that write to JSON files.
+2. **SSE Implementation:** Create a Server-Sent Events endpoint (`/api/stream`) that pushes updates to the frontend using file watchers (`fs.watch`) on the JSON files.
+3. **Agent Integration (`curl`):** CLI Agents must use `curl` to POST to the REST API when their status or task progress changes. MCP is not required.
 
 ## Phase 6: Zustand State Management
 
 1. **Store Creation:** Create entity-specific Zustand stores in `src/entities/*/model/store.ts` (e.g., `useTaskStore`, `useAgentStore`). Ensure `subscribeWithSelector` is used, and state/actions are separated.
 2. **State Integration:** Connect UI components (features and widgets) to Zustand stores using individual selectors to prevent unnecessary re-renders.
-3. **MCP Synchronization:** Update the MCP mock client to dispatch updates directly to the Zustand store, ensuring a unidirectional data flow.
+3. **Flicker-Free Updates:** Ensure SSE message handlers trigger silent state updates (not clearing current state briefly) so the UI refreshes smoothly without flashing.

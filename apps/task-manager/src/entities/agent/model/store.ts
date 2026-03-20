@@ -10,8 +10,8 @@ export interface AgentState {
 
 export interface AgentActions {
   setAgents: (agents: Agent[]) => void;
-  fetchAgents: () => Promise<void>;
-  updateAgentStatus: (agentId: string, status: AgentStatus) => Promise<void>;
+  fetchAgents: (projectId: string, silent?: boolean) => Promise<void>;
+  updateAgentStatus: (agentId: string, status: AgentStatus, projectId: string) => Promise<void>;
 }
 
 export type AgentStore = AgentState & AgentActions;
@@ -21,13 +21,17 @@ export const useAgentStore = create<AgentStore>()(
     agents: [],
     isLoading: false,
     error: null,
-    
+
     setAgents: (agents) => set({ agents }),
-    
-    fetchAgents: async () => {
-      set({ isLoading: true, error: null });
+
+    fetchAgents: async (projectId: string, silent = false) => {
+      if (!silent) {
+        set({ isLoading: true, error: null, agents: [] });
+      } else {
+        set({ error: null });
+      }
       try {
-        const res = await fetch('/api/agents');
+        const res = await fetch(`/api/agents?projectId=${projectId}`);
         if (!res.ok) throw new Error('Failed to fetch agents');
         const agents = await res.json();
         set({ agents: agents || [], isLoading: false });
@@ -36,28 +40,28 @@ export const useAgentStore = create<AgentStore>()(
       }
     },
 
-    updateAgentStatus: async (agentId, status) => {
+    updateAgentStatus: async (agentId, status, projectId) => {
       try {
         set({
-          agents: get().agents.map(a => a.id === agentId ? { ...a, status } : a)
+          agents: get().agents.map(a => (a.id === agentId ? { ...a, status } : a)),
         });
 
         const agentToUpdate = get().agents.find(a => a.id === agentId);
         if (!agentToUpdate) throw new Error('Agent not found');
 
-        const res = await fetch('/api/agents', {
+        const res = await fetch(`/api/agents?projectId=${projectId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...agentToUpdate, status }),
         });
 
         if (!res.ok) {
-          await get().fetchAgents();
+          await get().fetchAgents(projectId);
           throw new Error('Failed to update agent');
         }
       } catch (err: any) {
         set({ error: err.message });
       }
-    }
+    },
   }))
 );

@@ -34,3 +34,24 @@ You MUST strictly adhere to the FSD architectural pattern. The `src` directory m
 - **Reusability:** Build small, composable components.
 - **Readability:** Keep functions pure where possible. Use descriptive naming conventions.
 - **TypeScript:** Strict mode is mandatory. Avoid `any`. Define explicit interfaces for all component props, MCP payloads, and API responses.
+
+## 5. Agent Integration (HTTP API)
+
+Antigravity and CLI agents should **NOT** use MCP to sync tasks. Instead, use the local REST API with `curl` to update your status or move tasks.
+The UI will automatically refresh via Server-Sent Events (SSE) without page reloads.
+
+**To create or update a Task:**
+```bash
+curl -X POST "http://localhost:4200/api/tasks?projectId=<PROJECT_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"task-123","title":"Implement Feature X","description":"...","status":"IN_PROGRESS","assigneeId":"agent-name"}'
+```
+*(Status enum: TODO, IN_PROGRESS, IN_REVIEW, DONE)*
+
+**To update your Agent Status:**
+```bash
+curl -X POST "http://localhost:4200/api/agents?projectId=<PROJECT_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"agent-name","name":"Your Name","role":"Your Role","status":"WORKING","lastActiveAt":"'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'"}'
+```
+*(Status enum: IDLE, WORKING, ERROR)*
