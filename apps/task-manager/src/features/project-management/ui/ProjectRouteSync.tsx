@@ -37,11 +37,19 @@ export function ProjectRouteSync({ routeProjectId }: { routeProjectId?: string }
     if (selectedProjectId && projects.length > 0) {
       const targetPath = `/projects/${selectedProjectId}`;
       if (pathname !== targetPath) {
+        // Prevent overriding during a URL -> Store sync race condition
+        if (
+          routeProjectId && 
+          routeProjectId !== selectedProjectId && 
+          projects.some(p => p.id === routeProjectId)
+        ) {
+          return;
+        }
         // use router.replace to avoid clogging the history stack unnecessarily on auto-select
         router.replace(targetPath);
       }
     }
-  }, [selectedProjectId, pathname, router, projects]);
+  }, [selectedProjectId, pathname, router, projects, routeProjectId]);
 
   return null;
 }

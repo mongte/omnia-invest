@@ -16,6 +16,14 @@
       ],
       "createdAt": "2026-03-19T19:21:38.383Z",
       "updatedAt": "2026-03-20T07:17:21.280Z"
+    },
+    {
+      "title": "[FE] Fix project routing navigation issue on project select",
+      "description": "Issue: Selecting a newly created project (or switching projects) does not change the route, staying on the previous project.\n\nRequirements:\n1. Update route to `/projects/[projectId]` upon project selection.\n2. Ensure global project state (in store) is correctly synced with the route change.\n\nFSD Architecture Location:\n- `features/project-management/ui/ProjectRouteSync.tsx` (for routing/sync logic)\n- `entities/project/model/store.ts` (for store state synchronization)\n\nNote: The frontend must handle the project switch gracefully and update the URL accordingly.",
+      "status": "TODO",
+      "comments": [],
+      "createdAt": "2026-03-20T09:25:21.000Z",
+      "updatedAt": "2026-03-20T09:25:21.000Z"
     }
   ],
   "agents": []
