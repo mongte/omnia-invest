@@ -1,0 +1,14 @@
+{
+  "tasks": [
+    {
+      "title": "[FE] 데이터가 빈 프로젝트 렌더링 수정 및 라우터 데이터 패칭 에러 수정",
+      "description": "요구사항: 데이터가 비어있는 프로젝트(proj-1774348898926 등)가 UI에 표시되거나 무한 로딩/오류를 일으키지 않도록 데이터 검증을 수행하고, 라우터별로 JSON 데이터를 정확히 불러오도록 프로젝트 활성화 상태 및 패칭 로직을 수정합니다.\\n\\n아키텍처 위치: Frontend Data Fetching Hooks 및 UI 컴포넌트 레이어 (apps/task-manager/components 등)",
+      "status": "IN_PROGRESS",
+      "comments": [],
+      "createdAt": "2026-04-01T15:52:25.221Z",
+      "updatedAt": "2026-04-01T16:01:32.556Z",
+      "assigneeId": "agent-fe-1"
+    }
+  ],
+  "agents": []
+}

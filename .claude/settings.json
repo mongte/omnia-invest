@@ -1,0 +1,35 @@
+{
+  "language": "korean",
+  "worktree": {
+    "symlinkDirectories": [
+      "node_modules",
+      "apps/pharos-lab/node_modules",
+      "apps/task-manager/node_modules",
+      ".nx"
+    ],
+    "sparsePaths": [
+      "apps/pharos-lab",
+      "apps/task-manager"
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(nx *)",
+      "Bash(pnpm *)",
+      "Bash(npm run *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)"
+    ],
+    "ask": [
+      "Bash(rm -rf *)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Edit(./.env)"
+    ],
+    "deny": [
+      "Bash(git push *)"
+    ]
+  }
+}

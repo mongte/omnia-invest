@@ -1,0 +1,25 @@
+# Ignore everything in this directory
+/*
+
+# Except for these tracked files
+!/.gitignore
+!/README.md
+!/workflow_bundles_readme.md
+!/workflow- bundlesREADME.md
+
+# And the 15 core skills
+!/auth-implementation-patterns/
+!/backend-agent/
+!/code-reviewer/
+!/frontend-agent/
+!/frontend-design/
+!/nextjs-best-practices/
+!/pm-agent/
+!/qa-agent/
+!/react-best-practices/
+!/react-ui-patterns/
+!/senior-fullstack/
+!/tailwind-patterns/
+!/testing-qa/
+!/typescript-expert/
+!/ui-ux-designer/

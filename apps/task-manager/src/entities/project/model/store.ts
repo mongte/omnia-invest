@@ -37,10 +37,10 @@ export const useProjectStore = create<ProjectStore>()(
         const res = await fetch('/api/projects');
         if (!res.ok) throw new Error('Failed to fetch projects');
         const projects = await res.json();
-        const list: Project[] = projects || [];
+        const list: Project[] = Array.isArray(projects) ? projects : [];
         // Auto-select first project if none selected
         const currentId = get().selectedProjectId;
-        const selectedId = list.find(p => p.id === currentId)
+        const selectedId = list.find(p => p && p.id === currentId)
           ? currentId
           : null;
         set({ projects: list, isLoading: false, selectedProjectId: selectedId });

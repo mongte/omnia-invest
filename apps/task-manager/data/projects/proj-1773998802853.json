@@ -4,12 +4,57 @@
       "id": "task-1",
       "title": "[FE] Fix project selection and routing issue",
       "description": "Issue: When multiple projects exist, selecting a different project does not update the route or change the active project view.\n\nRequirements:\n1. Update the URL route dynamically to `/projects/[projectId]` upon clicking a project in the sidebar/list.\n2. Sync the global state representing the current active project with the URL route change.\n\nFSD Architecture Location:\n- `features/project-management/ui/ProjectRouteSync.tsx` (for routing/sync logic)\n- `entities/project/model/store.ts` (for store state synchronization)\n\nNote: The frontend must handle the project switch gracefully and update the URL accordingly. This title and description are immutable.",
-      "status": "IN_PROGRESS",
-      "comments": [],
+      "status": "IN_REVIEW",
+      "comments": [
+        {
+          "id": "comment-1774523285125",
+          "agentId": "agent-fe-1",
+          "content": "Implemented fix for ProjectRouteSync.tsx. Separated useEffect hooks to break the bi-directional race condition loop that caused selected projects to revert to the URL state. Tested route sync logic.",
+          "createdAt": "2026-03-26T11:08:05.125Z"
+        }
+      ],
       "createdAt": "2026-03-20T09:28:13.215Z",
-      "updatedAt": "2026-03-20T09:30:26.230Z",
+      "updatedAt": "2026-03-26T11:08:06.296Z",
+      "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-2",
+      "title": "[FE] 서버 응답 및 유효하지 않은 프로젝트 처리 방어 로직 추가",
+      "description": "요구사항:\n1. 화면(사이드바/대시보드 등)에 서버가 반환한 모든 프로젝트가 정상적으로 렌더링되는지 확인합니다.\n2. 프로젝트 데이터 내 특정 필수 필드가 앱에서 누락/손상되었을 때 (예: 형식이 맞지 않는 json 데이터) 프론트엔드단에서 에러가 전파되어 화면이 깨지거나 프로젝트 리스트가 통째로 보이지 않는 현상을 방어(Error Boundary, Fallback UI)하세요.\n\nFSD 아키텍처 위치:\n- `widgets/project-list` 혹은 `features/project-management` 영역의 프로젝트 렌더링 및 스토어 로직",
+      "status": "IN_REVIEW",
+      "comments": [
+        {
+          "id": "comment-1774523413121",
+          "agentId": "agent-fe-1",
+          "content": "Implemented ProjectErrorBoundary and ProjectItem to isolate project data rendering errors. Added defensive fallback in store.ts to handle non-array API responses. Gracefully degrading UI instead of full crash.",
+          "createdAt": "2026-03-26T11:10:13.121Z"
+        }
+      ],
+      "createdAt": "2026-03-24T10:44:27.077Z",
+      "updatedAt": "2026-03-26T11:10:14.286Z",
+      "assigneeId": "agent-fe-1"
+    },
+    {
+      "title": "[FE] 프로젝트 목록 전환 시 무한 루프 발생하는 버그 수정",
+      "description": "Task Manager의 프로젝트 상세(http://localhost:3000/projects/proj-1773998802853) 등에서 다른 프로젝트를 선택할 때 상태 또는 라우팅 변경이 연속으로 트리거되어 무한 루프(순차 선택)가 발생하는 버그를 수정해야 합니다. 사이드바나 프로젝트 목록의 클릭 이벤트 핸들러, 그리고 선택된 프로젝트 파라미터를 모니터링하는 useEffect 의존성 루프 로직에 불필요한 재렌더링 및 라우팅 루프가 없는지 점검하세요.",
+      "status": "IN_REVIEW",
+      "comments": [
+        {
+          "id": "comment-new",
+          "agentId": "agent-fe-1",
+          "content": "Fixed the infinite loop bug by removing the Store -> URL sync effect in ProjectRouteSync.tsx. The navigation should be driven exclusively by the URL (via next/link), preventing bidirectional state-routing race conditions.",
+          "createdAt": "2026-04-01T15:50:00.000Z"
+        }
+      ],
+      "createdAt": "2026-04-01T15:24:41.032Z",
+      "updatedAt": "2026-04-01T15:46:39.820Z",
       "assigneeId": "agent-fe-1"
     }
   ],
-  "agents": []
+  "agents": [
+    {
+      "id": "agent-qa",
+      "status": "WORKING"
+    }
+  ]
 }

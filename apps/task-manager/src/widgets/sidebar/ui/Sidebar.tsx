@@ -3,7 +3,57 @@
 import Link from 'next/link';
 import { LayoutDashboard, FolderKanban, Trash2 } from 'lucide-react';
 import { useProjectStore } from '@/entities/project/model/store';
-import { useEffect } from 'react';
+import { useEffect, Component, ReactNode } from 'react';
+
+// Error Boundary definition
+class ProjectErrorBoundary extends Component<{children: ReactNode, fallback: ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: ReactNode, fallback: ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
+const ProjectItem = ({ p, isSelected, deleteProject }: { p: any, isSelected: boolean, deleteProject: (id: string) => void }) => {
+  // Purposefully throw if the project format is totally broken, so ErrorBoundary catches it
+  if (!p || typeof p !== 'object' || !p.id || !p.title) {
+    throw new Error("Invalid project data");
+  }
+
+  return (
+    <Link
+      href={`/projects/${p.id}`}
+      className={`group flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors w-full cursor-pointer ${
+        isSelected
+          ? 'bg-slate-700 text-white'
+          : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+      }`}
+    >
+      <div className="flex items-center gap-2 truncate">
+        <div
+          className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            COLOR_MAP[p.color] ?? 'bg-slate-400'
+          }`}
+        />
+        <span className="truncate">{p.title}</span>
+      </div>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          deleteProject(p.id);
+        }}
+        className="opacity-0 group-hover:opacity-100 hover:text-red-400 p-1 text-slate-500 transition-all focus:outline-none"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </Link>
+  );
+};
+
 
 const COLOR_MAP: Record<string, string> = {
   blue: 'bg-blue-500',
@@ -59,36 +109,24 @@ export const Sidebar = () => {
             ) : projects.length === 0 ? (
               <div className="px-3 py-2 text-xs text-slate-500">No projects found.</div>
             ) : (
-              projects.map(p => {
-                const isSelected = p.id === selectedProjectId;
+              projects.map((p, index) => {
+                const isSelected = p && p.id === selectedProjectId;
+                const safeKey = (p && p.id) ? p.id : `invalid-key-${index}`;
                 return (
-                  <Link
-                    key={p.id}
-                    href={`/projects/${p.id}`}
-                    className={`group flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors w-full cursor-pointer ${
-                      isSelected
-                        ? 'bg-slate-700 text-white'
-                        : 'hover:bg-slate-800 text-slate-300 hover:text-white'
-                    }`}
+                  <ProjectErrorBoundary
+                    key={safeKey}
+                    fallback={
+                      <div className="px-3 py-2 text-sm text-red-300 bg-red-900/30 rounded-md border border-red-800/50 flex items-center justify-between">
+                        <span className="truncate">Corrupted Project Data</span>
+                        <Trash2 
+                          className="w-3.5 h-3.5 text-red-400 cursor-pointer hover:text-red-300" 
+                          onClick={() => { if(p?.id) deleteProject(p.id); }} 
+                        />
+                      </div>
+                    }
                   >
-                    <div className="flex items-center gap-2 truncate">
-                      <div
-                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          COLOR_MAP[p.color] ?? 'bg-slate-400'
-                        }`}
-                      />
-                      <span className="truncate">{p.title}</span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteProject(p.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 hover:text-red-400 p-1 text-slate-500 transition-all focus:outline-none"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </Link>
+                    <ProjectItem p={p} isSelected={isSelected} deleteProject={deleteProject} />
+                  </ProjectErrorBoundary>
                 );
               })
             )}

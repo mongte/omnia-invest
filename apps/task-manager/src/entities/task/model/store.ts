@@ -13,6 +13,7 @@ export interface TaskActions {
   fetchTasks: (projectId: string, silent?: boolean) => Promise<void>;
   addTask: (task: Task, projectId: string) => Promise<void>;
   updateTaskStatus: (taskId: string, status: TaskStatus, projectId: string) => Promise<void>;
+  clearCompleted: (projectId: string) => Promise<void>;
 }
 
 export type TaskStore = TaskState & TaskActions;
@@ -83,6 +84,26 @@ export const useTaskStore = create<TaskStore>()(
         if (!res.ok) {
           await get().fetchTasks(projectId);
           throw new Error('Failed to update task');
+        }
+      } catch (err: any) {
+        set({ error: err.message });
+      }
+    },
+
+    clearCompleted: async (projectId: string) => {
+      try {
+        // Optimistic update
+        set({
+          tasks: get().tasks.filter(t => t.status !== 'DONE'),
+        });
+
+        const res = await fetch(`/api/tasks/clear-completed?projectId=${projectId}`, {
+          method: 'POST',
+        });
+
+        if (!res.ok) {
+          await get().fetchTasks(projectId);
+          throw new Error('Failed to clear completed tasks');
         }
       } catch (err: any) {
         set({ error: err.message });
