@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getProjectsList, saveProjectsList, archiveProjectDb } from '@/shared/api/local-db';
+import { getProjectsList, saveProjectsList, deleteOrArchiveProjectDb } from '@/shared/api/local-db';
 
 export async function DELETE(
   request: Request,
@@ -19,8 +19,8 @@ export async function DELETE(
     }
 
     await saveProjectsList(updatedProjects);
-    // Archive the project's task/agent data file to projects-delete/ instead of permanently deleting
-    await archiveProjectDb(projectId);
+    // Conditionally delete or archive based on whether the project has tasks
+    await deleteOrArchiveProjectDb(projectId);
 
     return NextResponse.json({ success: true, deletedId: projectId });
   } catch (error) {

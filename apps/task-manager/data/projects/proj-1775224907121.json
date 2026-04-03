@@ -1,0 +1,265 @@
+{
+  "tasks": [
+    {
+      "id": "task-17752274953N",
+      "title": "[BE] FSD 디렉토리 구조 스캐폴딩",
+      "description": "**목표**:\napps/pharos-lab/src/ 하위에 FSD(Feature-Sliced Design) 레이어 디렉토리를 생성하여 이후 모든 개발의 기반 구조를 만든다.\n\n**요구사항**:\n1. 다음 디렉토리 생성: entities/, features/, widgets/, views/, shared/api/, shared/lib/, shared/ui/, shared/config/\n2. 각 디렉토리에 barrel index.ts 파일 추가\n3. tsconfig.json에 필요한 경우 path alias 추가 확인\n\n**수락 기준**:\n- 모든 FSD 레이어 디렉토리가 index.ts와 함께 존재\n- npx tsc --noEmit 통과\n- @/shared/..., @/entities/... import 경로가 올바르게 resolve됨",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:44:55.484Z",
+      "updatedAt": "2026-04-03T14:44:55.484Z",
+      "comments": []
+    },
+    {
+      "id": "task-17752275133N",
+      "title": "[BE] 환경설정 및 API 클라이언트 유틸리티 (키움/DART)",
+      "description": "**목표**:\n키움증권 REST API와 OpenDART API를 호출하기 위한 서버사이드 클라이언트 유틸리티를 구현한다.\n\n**요구사항**:\n1. shared/config/env.ts — 서버사이드 환경변수 검증 (키움 API 키, DART 키, LLM API 키)\n2. shared/api/kiwoom-client.ts — OAuth 토큰 캐싱, 기본 요청 헬퍼 (rate-limit 재시도), server-only\n3. shared/api/opendart-client.ts — API 키 인증, 기본 요청 헬퍼, server-only\n4. 두 클라이언트 모두 'server-only' import guard 적용\n\n**수락 기준**:\n- KiwoomClient 클래스에 getToken(), request() 메서드 존재, 토큰 자동 갱신\n- OpenDartClient 클래스에 request() 메서드 존재\n- 키움 API 오류 코드 처리 (429, 인증 오류)\n- 키움 API 호출 간 0.5초 딜레이 적용\n- OpenDART 020 오류(일일 제한) 처리\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] FSD 디렉토리 구조 스캐폴딩 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:45:13.931Z",
+      "updatedAt": "2026-04-03T14:45:13.931Z",
+      "comments": []
+    },
+    {
+      "id": "task-17752275163N",
+      "title": "[BE] Stock 엔티티 타입 및 종목코드-DART 매핑",
+      "description": "**목표**:\n주식 관련 핵심 엔티티 타입을 정의하고 종목코드와 DART 법인코드 간 매핑 기능을 구현한다.\n\n**요구사항**:\n1. entities/stock/types.ts에 Stock, StockPrice, StockRanking, Disclosure, FinancialStatement, ScoreResult 인터페이스 정의\n2. entities/stock/api/corp-code-map.ts에 종목코드 → DART 법인코드 캐싱 매핑 구현\n3. getCorpCode(stockCode: string): Promise<string> 함수 구현\n4. any 타입 사용 금지\n\n**수락 기준**:\n- 모든 엔티티 인터페이스가 any 없이 정의됨\n- getCorpCode('005930')이 올바른 DART 법인코드를 반환\n- 법인코드 매핑이 최초 로드 후 캐시됨\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 환경설정 및 API 클라이언트 유틸리티 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:45:16.416Z",
+      "updatedAt": "2026-04-03T14:45:16.416Z",
+      "comments": []
+    },
+    {
+      "id": "task-17752275313N",
+      "title": "[FE] shadcn/ui 설치 및 설정",
+      "description": "**목표**:\npharos-lab 앱에 shadcn/ui를 설치하고 투자 플랫폼에 적합한 다크 테마를 설정한다.\n\n**요구사항**:\n1. shadcn/ui 초기화 (components.json 설정)\n2. 필수 의존성 설치: class-variance-authority, clsx, tailwind-merge, lucide-react, @radix-ui/*\n3. 기본 컴포넌트 설치: Button, Card, Badge, Separator, Tooltip, ScrollArea, Sheet, Tabs\n4. globals.css에 다크 테마 CSS 변수 정의 (투자 플랫폼 특성상 다크 테마 기본)\n\n**수락 기준**:\n- shadcn CLI가 pharos-lab 앱에서 정상 작동\n- 8개 이상 기본 컴포넌트 설치 및 import 가능\n- 다크 테마 CSS 변수가 globals.css에 정의됨\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] FSD 디렉토리 구조 스캐폴딩 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:45:31.089Z",
+      "updatedAt": "2026-04-03T14:45:31.089Z",
+      "comments": []
+    },
+    {
+      "id": "task-17752275683N",
+      "title": "[FE] 차트 라이브러리 설치 및 프리미티브 컴포넌트",
+      "description": "**목표**:\n금융 캔들스틱 차트와 일반 차트를 위한 라이브러리를 설치하고 재사용 가능한 래퍼 컴포넌트를 만든다.\n\n**요구사항**:\n1. lightweight-charts (TradingView) 설치 — 캔들스틱/라인 차트용\n2. recharts 설치 — 범용 차트(바, 레이더 등)용\n3. shared/ui/charts/에 래퍼 컴포넌트 생성: CandlestickChart, LineChart, BarChart, AreaChart\n4. 각 컴포넌트는 타입이 지정된 data props를 받고 반응형 크기 조정\n\n**수락 기준**:\n- 두 차트 라이브러리 모두 설치됨\n- 4개 이상 차트 래퍼 컴포넌트가 shared/ui/charts/에 존재\n- 목 데이터로 에러 없이 렌더링\n- 부모 컨테이너에 따라 반응형 크기 조정\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [FE] shadcn/ui 설치 및 설정 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:46:09.000Z",
+      "updatedAt": "2026-04-03T14:46:09.040Z",
+      "comments": []
+    },
+    {
+      "id": "task-17752275693N",
+      "title": "[BE] 주식 랭킹 API (/api/stocks/ranking)",
+      "description": "**목표**:\n키움증권 API에서 랭킹 데이터를 조회하여 정형화된 형태로 반환하는 Next.js API 라우트를 구현한다.\n\n**요구사항**:\n1. app/api/stocks/ranking/route.ts 생성\n2. 키움 ka10027(상위 등락률), ka10023(거래량 급등) 등 랭킹 API 호출\n3. 쿼리 파라미터: type(gainers|losers|volume), limit\n4. 통합된 StockRanking[] 응답 반환\n\n**수락 기준**:\n- GET /api/stocks/ranking?type=gainers&limit=20 호출 시 랭킹 목록 반환\n- 응답에 종목코드, 종목명, 현재가, 등락률(%), 거래량 포함\n- 키움 API 오류(429, 인증 오류) 처리\n- 프로젝트 API 응답 형식 준수\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 환경설정 및 API 클라이언트 유틸리티 완료 후 시작 가능\n- [BE] Stock 엔티티 타입 및 종목코드-DART 매핑 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:46:09.771Z",
+      "updatedAt": "2026-04-03T14:46:09.771Z",
+      "comments": []
+    },
+    {
+      "id": "task-p0-fe-app-shell",
+      "title": "[FE] 앱 쉘 레이아웃 (사이드바+헤더)",
+      "description": "**목표**:\n대시보드와 가상 투자 페이지를 감싸는 앱 쉘 레이아웃을 구현한다.\n\n**요구사항**:\n1. app/layout.tsx 교체 — Pharos Lab 메타데이터로 업데이트\n2. 사이드바: 대시보드, 가상 투자 네비게이션 링크, 현재 라우트 하이라이트\n3. 헤더: 앱 타이틀 Pharos Lab, 사용자 메뉴 플레이스홀더\n4. 모바일: shadcn Sheet 컴포넌트로 사이드바 콜랩스\n5. /dashboard와 /virtual-trading 라우트 모두 이 레이아웃 사용\n\n**수락 기준**:\n- 사이드바에 대시보드/가상투자 메뉴 렌더링\n- 현재 활성 라우트가 시각적으로 구분됨\n- 모바일(375px)에서 사이드바가 Sheet로 전환\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [FE] shadcn/ui 설치 및 설정 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:46:23.164Z",
+      "updatedAt": "2026-04-03T14:46:23.164Z",
+      "comments": []
+    },
+    {
+      "id": "task-p1-be-stock-detail",
+      "title": "[BE] 종목 상세 & 가격 히스토리 API (/api/stocks/[code])",
+      "description": "**목표**:\n특정 종목의 기본 정보와 OHLCV 가격 히스토리를 반환하는 API를 구현한다.\n\n**요구사항**:\n1. app/api/stocks/[code]/route.ts 생성\n2. 키움 ka10001(기본 정보) 호출 — PER, PBR, ROE, EPS 포함\n3. 키움 ka10005(일별 OHLCV) 호출 — 최소 90일\n4. 키움 API의 음수값 파싱 처리 (앞에 '-' 붙은 문자열)\n5. Next.js unstable_cache 또는 커스텀 TTL로 5분 캐싱\n\n**수락 기준**:\n- GET /api/stocks/005930 호출 시 종목 정보 + 가격 히스토리 반환\n- 가격 히스토리에 90일 이상 OHLCV 데이터 포함\n- 키움 API 음수값(문자열 '-' 접두사) 올바르게 파싱\n- 5분 캐시 적용\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 환경설정 및 API 클라이언트 유틸리티 완료 후 시작 가능\n- [BE] Stock 엔티티 타입 및 종목코드-DART 매핑 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:46:51.161Z",
+      "updatedAt": "2026-04-03T14:46:51.161Z",
+      "comments": []
+    },
+    {
+      "id": "task-p1-be-disclosures",
+      "title": "[BE] 종목 공시 타임라인 API (/api/stocks/[code]/disclosures)",
+      "description": "**목표**:\nOpenDART API를 통해 특정 종목의 공시 목록을 시간순으로 반환하는 API를 구현한다.\n\n**요구사항**:\n1. app/api/stocks/[code]/disclosures/route.ts 생성\n2. 종목코드를 DART 법인코드로 변환 후 OpenDART list.json 호출\n3. 날짜 범위 필터링 지원 (from, to 쿼리 파라미터)\n4. 공시 유형에 따른 중요도 분류 (실적=high, 기타=low 등)\n\n**수락 기준**:\n- GET /api/stocks/005930/disclosures?from=20250101&to=20260401 호출 시 공시 목록 반환\n- 각 공시에 날짜, 제목, 유형, DART URL, 중요도 포함\n- OpenDART 013 오류(데이터 없음) 시 빈 배열 반환\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 환경설정 및 API 클라이언트 유틸리티 완료 후 시작 가능\n- [BE] Stock 엔티티 타입 및 종목코드-DART 매핑 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:46:52.031Z",
+      "updatedAt": "2026-04-03T14:46:52.031Z",
+      "comments": []
+    },
+    {
+      "id": "task-p1-be-financials",
+      "title": "[BE] 재무제표 API (/api/stocks/[code]/financials)",
+      "description": "**목표**:\nOpenDART API를 통해 3년치 주요 재무 지표를 파싱하여 반환하는 API를 구현한다.\n\n**요구사항**:\n1. app/api/stocks/[code]/financials/route.ts 생성\n2. OpenDART fnlttSinglAcntAll.json 호출\n3. 재무 지표 파싱: 매출액, 영업이익, 순이익, 총자산, 자기자본\n4. 3개년 비교 (당기, 전기, 전전기)\n5. CFS(연결)/OFS(별도) 선택 파라미터 지원\n\n**수락 기준**:\n- GET /api/stocks/005930/financials?year=2025 호출 시 구조화된 재무 데이터 반환\n- BS, IS 주요 계정이 숫자값으로 파싱됨\n- 3개년 데이터 포함\n- CFS/OFS 쿼리 파라미터 지원\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 환경설정 및 API 클라이언트 유틸리티 완료 후 시작 가능\n- [BE] Stock 엔티티 타입 및 종목코드-DART 매핑 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:46:52.781Z",
+      "updatedAt": "2026-04-03T14:46:52.781Z",
+      "comments": []
+    },
+    {
+      "id": "task-p1-be-scoring",
+      "title": "[BE] 종목 스코어링 엔진 (/api/stocks/scoring)",
+      "description": "**목표**:\n펀더멘털, 모멘텀, 공시, 기관 관심도 등 다각도 지표를 종합하여 종목별 추천 점수를 산출하는 엔진을 구현한다.\n\n**요구사항**:\n1. features/scoring/model/score-engine.ts — 스코어링 알고리즘 구현\n2. 4개 세부 점수: 펀더멘털(PER/PBR/ROE), 모멘텀(가격 추세), 공시 활동(빈도/중요도), 기관 관심도\n3. 각 세부 점수는 0~100, 가중 합산으로 최종 점수 산출\n4. app/api/stocks/scoring/route.ts — 상위 N개 종목 점수 계산 엔드포인트\n5. 15분 캐싱 적용\n\n**수락 기준**:\n- GET /api/stocks/scoring?limit=30 호출 시 점수와 랭킹이 매겨진 종목 목록 반환\n- 각 결과에 총점, 세부 점수, 점수 설명 텍스트 포함\n- 동일 입력 데이터에 대해 점수가 일관됨 (결정론적)\n- 15분 캐시 적용\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 주식 랭킹 API 완료 후 시작 가능\n- [BE] 종목 상세 및 가격 히스토리 API 완료 후 시작 가능\n- [BE] 종목 공시 타임라인 API 완료 후 시작 가능\n- [BE] 재무제표 API 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:46:59.481Z",
+      "updatedAt": "2026-04-03T14:46:59.481Z",
+      "comments": []
+    },
+    {
+      "id": "task-p1-be-llm-summary",
+      "title": "[BE] LLM 공시 요약 서비스 (/api/disclosures/[id]/summary)",
+      "description": "**목표**:\n공시 내용을 LLM으로 요약하여 핵심 정보만 추출하는 서비스를 구현한다.\n\n**요구사항**:\n1. features/llm-summary/model/summary-service.ts — LLM 요약 로직\n2. 공시 rcept_no로 DART에서 내용 조회 후 LLM(OpenAI 호환 또는 Claude API) 호출\n3. 한국어 금융 공시 요약에 최적화된 프롬프트 엔지니어링\n4. app/api/disclosures/[id]/summary/route.ts 생성\n5. 최초 생성 후 캐싱\n\n**수락 기준**:\n- GET /api/disclosures/{rcept_no}/summary 호출 시 LLM 생성 요약 반환\n- 요약에 핵심 포인트(3~5개 불릿), 감성(positive/negative/neutral), 영향 평가 포함\n- LLM API 오류 시 폴백 메시지로 graceful 처리\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 환경설정 및 API 클라이언트 유틸리티 완료 후 시작 가능\n- [BE] 종목 공시 타임라인 API 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:47:06.562Z",
+      "updatedAt": "2026-04-03T14:47:06.562Z",
+      "comments": []
+    },
+    {
+      "id": "task-p2-fe-dashboard-grid",
+      "title": "[FE] 대시보드 페이지 그리드 레이아웃",
+      "description": "**목표**:\n대시보드의 6개 위젯 섹션을 담는 반응형 그리드 레이아웃 페이지를 구현한다.\n\n**요구사항**:\n1. app/dashboard/page.tsx 및 views/dashboard/ui/DashboardView.tsx 생성\n2. CSS Grid로 6개 섹션 레이아웃: 종목 랭킹, 스코어 설명, 랭킹 차트, 타임라인, LLM 요약, 주가 오버레이\n3. 각 섹션은 초기에 레이블과 스켈레톤 상태로 렌더링\n4. 반응형: 모바일 1열, 태블릿 2열, 데스크탑 다열\n\n**수락 기준**:\n- /dashboard 경로에서 페이지 렌더링\n- 6개 그리드 섹션이 레이블과 함께 구분됨\n- 각 섹션에 스켈레톤 로딩 상태 표시\n- 375px(모바일), 768px(태블릿), 1280px+(데스크탑) 반응형 레이아웃\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [FE] 앱 쉘 레이아웃 완료 후 시작 가능\n- [FE] 차트 라이브러리 설치 및 프리미티브 컴포넌트 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:47:46.448Z",
+      "updatedAt": "2026-04-03T14:47:46.448Z",
+      "comments": []
+    },
+    {
+      "id": "task-p2-fe-ranking-list",
+      "title": "[FE] 스코어 기반 종목 랭킹 리스트 위젯",
+      "description": "**목표**:\n스코어링 API 결과를 기반으로 종목 추천 랭킹 리스트를 표시하고 선택 상태를 전역 관리한다.\n\n**요구사항**:\n1. widgets/stock-ranking/ui/StockRankingList.tsx 생성\n2. /api/stocks/scoring에서 데이터 페칭\n3. 스크롤 가능한 리스트: 순위 배지, 종목명, 점수 바(시각적), 현재가, 등락률\n4. entities/stock/model/store.ts — Zustand 스토어 (selectedStock, selectedDisclosure)\n5. 종목 클릭 시 selectedStock 업데이트\n\n**수락 기준**:\n- 스코어링 API 실데이터로 랭킹 리스트 렌더링\n- 각 행에 순위, 종목명, 점수 바, 가격, 등락률 표시\n- 점수 바 색상: 고점수=초록, 중간=노랑, 저점수=빨강\n- 종목 클릭 시 Zustand selectedStock 업데이트\n- 데이터 페칭 중 스켈레톤 표시\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 종목 스코어링 엔진 완료 후 시작 가능\n- [FE] 대시보드 페이지 그리드 레이아웃 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:47:47.477Z",
+      "updatedAt": "2026-04-03T14:47:47.477Z",
+      "comments": []
+    },
+    {
+      "id": "task-p2-fe-score-explanation",
+      "title": "[FE] 스코어 설명 패널 위젯 (레이더 차트)",
+      "description": "**목표**:\n선택된 종목의 세부 점수를 레이더 차트와 텍스트 설명으로 시각화하는 패널을 구현한다.\n\n**요구사항**:\n1. widgets/score-explanation/ui/ScoreExplanation.tsx 생성\n2. Zustand에서 selectedStock 구독\n3. recharts 레이더 차트로 4개 세부 점수(펀더멘털, 모멘텀, 공시, 기관) 표시\n4. 각 세부 점수별 설명 텍스트 렌더링\n5. 종목 미선택 시 empty state 표시\n\n**수락 기준**:\n- 다른 종목 선택 시 패널 내용 업데이트\n- 레이더 차트에 4개 축(펀더멘털, 모멘텀, 공시 활동, 기관 관심) 표시\n- 각 세부 점수 이유 텍스트 구조화 렌더링\n- 종목 미선택 시 empty state 표시\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 종목 스코어링 엔진 완료 후 시작 가능\n- [FE] 스코어 기반 종목 랭킹 리스트 위젯 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:47:48.337Z",
+      "updatedAt": "2026-04-03T14:47:48.337Z",
+      "comments": []
+    },
+    {
+      "id": "task-p2-fe-ranking-chart",
+      "title": "[FE] 데일리 랭킹 변동 차트 위젯",
+      "description": "**목표**:\n시간에 따른 상위 종목들의 랭킹 변동을 라인/범프 차트로 시각화한다.\n\n**요구사항**:\n1. widgets/ranking-chart/ui/RankingChart.tsx 생성\n2. recharts로 X축=시간, Y축=순위(역전) 라인 차트 구현\n3. 일/주/월 단위 토글 기능\n4. 각 종목별 구분 색상 라인\n5. 호버 툴팁: 종목명 + 해당 시점 순위\n6. MVP 단계에서는 목 데이터 사용 허용 (히스토리 스냅샷 API 미구현 시)\n\n**수락 기준**:\n- 차트에 시간(X축), 순위 위치(Y축, 역전) 표시\n- 일/주/월 단위 전환 토글 동작\n- 각 종목이 구분되는 색상의 라인으로 표시\n- 호버 시 종목명과 순위 툴팁 표시\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [FE] 차트 라이브러리 설치 및 프리미티브 컴포넌트 완료 후 시작 가능\n- [FE] 대시보드 페이지 그리드 레이아웃 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:47:49.179Z",
+      "updatedAt": "2026-04-03T14:47:49.179Z",
+      "comments": []
+    },
+    {
+      "id": "task-p2-fe-timeline",
+      "title": "[FE] 종목 타임라인 위젯",
+      "description": "**목표**:\n선택된 종목의 공시 이벤트를 시간순 타임라인으로 표시하고 이슈 선택을 가능하게 한다.\n\n**요구사항**:\n1. widgets/stock-timeline/ui/StockTimeline.tsx 생성\n2. Zustand selectedStock 구독, /api/stocks/[code]/disclosures 페칭\n3. 수직 타임라인 렌더링: 날짜, 공시 제목, 중요도 배지(색상 코딩)\n4. 공시 노드 클릭 시 Zustand selectedDisclosure 업데이트\n5. 최신 항목으로 자동 스크롤\n\n**수락 기준**:\n- 공시 이벤트 시간순 타임라인 렌더링\n- 중요도 색상 코딩: high=빨강, medium=노랑, low=회색\n- 공시 노드 클릭 시 selectedDisclosure 스토어 업데이트\n- 최신 항목으로 자동 스크롤\n- 종목 미선택 시 empty state\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 종목 공시 타임라인 API 완료 후 시작 가능\n- [FE] 스코어 기반 종목 랭킹 리스트 위젯 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:47:49.910Z",
+      "updatedAt": "2026-04-03T14:47:49.910Z",
+      "comments": []
+    },
+    {
+      "id": "task-p2-fe-issue-summary",
+      "title": "[FE] LLM 이슈 요약 패널 위젯",
+      "description": "**목표**:\n타임라인에서 선택된 공시의 LLM 요약을 표시하는 패널을 구현한다.\n\n**요구사항**:\n1. widgets/issue-summary/ui/IssueSummary.tsx 생성\n2. Zustand selectedDisclosure 구독\n3. /api/disclosures/[id]/summary 호출\n4. 핵심 불릿 포인트, 감성 배지, 영향 평가 렌더링\n5. LLM 생성 중 로딩 스피너\n6. 오류 시 재시도 버튼\n\n**수락 기준**:\n- 타임라인에서 공시 선택 시 요약 패널 표시\n- 핵심 포인트 불릿 리스트 렌더링\n- 감성 배지: positive=초록, negative=빨강, neutral=회색\n- LLM 처리 중 로딩 상태 표시\n- API 실패 시 재시도 버튼 포함 오류 상태\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] LLM 공시 요약 서비스 완료 후 시작 가능\n- [FE] 종목 타임라인 위젯 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:48:27.526Z",
+      "updatedAt": "2026-04-03T14:48:27.526Z",
+      "comments": []
+    },
+    {
+      "id": "task-p2-fe-price-overlay",
+      "title": "[FE] 주가 차트 + 공시 오버레이 위젯",
+      "description": "**목표**:\n선택된 종목의 캔들스틱 차트에 공시 이벤트를 수직 마커로 오버레이하여 주가와 이슈의 상관관계를 시각화한다.\n\n**요구사항**:\n1. widgets/price-overlay/ui/PriceOverlay.tsx 생성\n2. Zustand selectedStock 구독, /api/stocks/[code] 및 /api/stocks/[code]/disclosures 페칭\n3. lightweight-charts로 OHLCV 캔들스틱 차트 렌더링\n4. 공시 이벤트를 날짜 위치에 색상 수직 마커로 오버레이\n5. 마커 클릭 시 selectedDisclosure 업데이트\n6. 차트 줌/패닝 지원\n\n**수락 기준**:\n- 선택 종목의 캔들스틱 차트 렌더링\n- 공시 이벤트가 차트 해당 날짜에 색상 마커로 표시\n- 마커 색상이 공시 중요도와 일치\n- 마커 클릭 시 selectedDisclosure 스토어 업데이트\n- 차트 줌/패닝 가능\n- 반응형 크기 조정\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 종목 상세 및 가격 히스토리 API 완료 후 시작 가능\n- [BE] 종목 공시 타임라인 API 완료 후 시작 가능\n- [FE] 스코어 기반 종목 랭킹 리스트 위젯 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:48:28.413Z",
+      "updatedAt": "2026-04-03T14:48:28.413Z",
+      "comments": []
+    },
+    {
+      "id": "task-p3-be-virtual-account",
+      "title": "[BE] 가상 계좌 데이터 모델 및 스토리지",
+      "description": "**목표**:\n가상 투자 기능을 위한 계좌, 포트폴리오, 거래 데이터 모델과 영속적 스토리지를 구현한다.\n\n**요구사항**:\n1. entities/virtual-account/types.ts — VirtualAccount, VirtualPortfolio, VirtualTrade, VirtualHolding 인터페이스\n2. shared/api/virtual-db.ts — JSON 파일 기반 스토리지 (서버 재시작 후에도 데이터 유지)\n3. 초기 가상 자금: 100,000,000 KRW\n4. 포트폴리오 가치 계산 (보유 종목 * 현재가)\n5. 거래 실행 시 보유 종목 및 현금 잔액 업데이트\n\n**수락 기준**:\n- 모든 엔티티 타입 any 없이 정의됨\n- CRUD 작업(계좌, 거래, 보유 종목) 정상 동작\n- 포트폴리오 가치가 현재가 기준으로 올바르게 계산됨\n- 서버 재시작 후에도 데이터 유지됨\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] FSD 디렉토리 구조 스캐폴딩 완료 후 시작 가능\n- [BE] Stock 엔티티 타입 및 종목코드-DART 매핑 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:48:29.262Z",
+      "updatedAt": "2026-04-03T14:48:29.262Z",
+      "comments": []
+    },
+    {
+      "id": "task-p3-be-virtual-crud",
+      "title": "[BE] 가상 매매 CRUD API",
+      "description": "**목표**:\n가상 계좌의 조회, 거래 실행, 포트폴리오 현황 조회 API를 구현한다.\n\n**요구사항**:\n1. app/api/virtual/account/route.ts — GET (계좌 요약: 현금, 총평가액, 손익)\n2. app/api/virtual/trades/route.ts — POST (거래 실행), GET (거래 내역 페이지네이션)\n3. app/api/virtual/portfolio/route.ts — GET (보유 종목 + 키움 실시간 가격)\n4. 거래 유효성 검증: 보유량 초과 매도 불가, 현금 초과 매수 불가\n5. 거래 이력 페이지네이션 지원\n\n**수락 기준**:\n- GET /api/virtual/account 현금, 총평가, 손익 반환\n- POST /api/virtual/trades with {stockCode, action: buy|sell, quantity, price} 거래 실행\n- GET /api/virtual/portfolio 보유 종목 + 키움 실시간 가격 반환\n- 잔고 부족 / 보유량 초과 시 오류 반환\n- GET /api/virtual/trades 페이지네이션 거래 내역 반환\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 가상 계좌 데이터 모델 및 스토리지 완료 후 시작 가능\n- [BE] 환경설정 및 API 클라이언트 유틸리티 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:48:29.900Z",
+      "updatedAt": "2026-04-03T14:48:29.900Z",
+      "comments": []
+    },
+    {
+      "id": "task-p3-be-ai-signals",
+      "title": "[BE] AI 매매 시그널 생성 서비스",
+      "description": "**목표**:\n종목의 가격 데이터와 스코어를 분석하여 매수/매도 시그널을 생성하는 서비스를 구현한다.\n\n**요구사항**:\n1. features/ai-signals/model/signal-service.ts — 룰 기반 시그널 엔진\n2. 최소 3개 전략 구현: 이동평균 크로스오버, 거래량 급등, 스코어 임계값\n3. 90일 OHLCV 데이터 기반 시그널 계산\n4. app/api/stocks/[code]/signals/route.ts 생성\n\n**수락 기준**:\n- GET /api/stocks/005930/signals 시그널 배열 반환\n- 각 시그널: {type: buy|sell, price, date, confidence, reason}\n- 최소 3개 전략 구현됨\n- 90일 데이터 기반 계산\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 종목 상세 및 가격 히스토리 API 완료 후 시작 가능\n- [BE] 종목 스코어링 엔진 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:48:34.032Z",
+      "updatedAt": "2026-04-03T14:48:34.032Z",
+      "comments": []
+    },
+    {
+      "id": "task-p3-be-backtest",
+      "title": "[BE] 백테스팅 엔진 서비스",
+      "description": "**목표**:\nAI 시그널 전략을 과거 데이터에 적용하여 성과를 시뮬레이션하는 백테스팅 엔진을 구현한다.\n\n**요구사항**:\n1. features/backtesting/model/backtest-engine.ts — 역사적 시뮬레이션 엔진\n2. 입력: 종목코드, 전략 파라미터, 날짜 범위, 초기 자금\n3. 성과 지표: 총 수익률, 최대 낙폭(MDD), 승률, 거래 횟수, 에퀴티 커브\n4. 에퀴티 커브: {date, value}[] 배열 (차트용)\n5. app/api/backtest/route.ts 생성\n\n**수락 기준**:\n- POST /api/backtest with {stockCode, strategy, startDate, endDate, initialCapital} 결과 반환\n- 결과: 총 수익률%, 최대 낙폭%, 승률, 거래 횟수, 에퀴티 커브 데이터\n- 복수 전략 타입 선택 가능\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] AI 매매 시그널 생성 서비스 완료 후 시작 가능\n- [BE] 종목 상세 및 가격 히스토리 API 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:48:49.300Z",
+      "updatedAt": "2026-04-03T14:48:49.300Z",
+      "comments": []
+    },
+    {
+      "id": "task-p4-fe-vt-layout",
+      "title": "[FE] 가상 투자 페이지 레이아웃",
+      "description": "**목표**:\n가상 투자 기능의 5개 위젯을 담는 페이지 레이아웃과 유료 기능 표시를 구현한다.\n\n**요구사항**:\n1. app/virtual-trading/page.tsx 및 views/virtual-trading/ui/VirtualTradingView.tsx 생성\n2. 5개 섹션 레이아웃: 계좌 요약(상단), 포트폴리오 테이블(좌), 매매 폼(우), AI 시그널(중앙), 백테스팅 차트(하단)\n3. Premium Feature 배너/배지 표시\n4. 각 섹션에 플레이스홀더/스켈레톤 상태\n\n**수락 기준**:\n- /virtual-trading 경로에서 페이지 렌더링\n- 5개 섹션이 플레이스홀더 상태로 표시\n- Premium Feature 배너 또는 배지 가시적\n- 반응형 레이아웃\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [FE] 앱 쉘 레이아웃 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:48:56.770Z",
+      "updatedAt": "2026-04-03T14:48:56.770Z",
+      "comments": []
+    },
+    {
+      "id": "task-p4-fe-portfolio",
+      "title": "[FE] 가상 계좌 및 포트폴리오 위젯",
+      "description": "**목표**:\n가상 계좌 요약과 보유 종목 테이블을 표시하는 위젯을 구현한다.\n\n**요구사항**:\n1. widgets/virtual-portfolio/ui/VirtualPortfolio.tsx 생성\n2. /api/virtual/account, /api/virtual/portfolio 페칭\n3. 계좌 요약: 현금, 총평가액, 손익(색상 표시)\n4. 보유 종목 테이블: 종목, 수량, 평균단가, 현재가, 손익%, 평가액 (컬럼 정렬)\n5. 새로고침 버튼으로 실시간 가격 업데이트\n\n**수락 기준**:\n- 계좌 요약에 현금, 총평가액, 손익 표시\n- 보유 테이블 컬럼 정렬 기능\n- 손익 초록/빨강 색상 표시\n- 새로고침 버튼 동작\n- 보유 종목 없을 때 empty state\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 가상 매매 CRUD API 완료 후 시작 가능\n- [FE] 가상 투자 페이지 레이아웃 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:49:02.325Z",
+      "updatedAt": "2026-04-03T14:49:02.326Z",
+      "comments": []
+    },
+    {
+      "id": "task-p4-fe-trade-form",
+      "title": "[FE] 매매 실행 폼 위젯",
+      "description": "**목표**:\n가상 계좌에서 종목을 매수/매도할 수 있는 폼 위젯을 구현한다.\n\n**요구사항**:\n1. widgets/trade-form/ui/TradeForm.tsx 생성\n2. 종목 검색/선택 (자동완성), 매수/매도 토글, 수량 입력, 가격 입력, 주문 미리보기, 제출 버튼\n3. POST /api/virtual/trades 호출\n4. 성공/실패 toast 알림\n5. 유효성: 수량 > 0, 현금/보유량 충분 여부 검증\n6. 성공 후 폼 리셋\n\n**수락 기준**:\n- 종목 검색 자동완성 동작 (랭킹 데이터 기반)\n- 매수/매도 토글 시 폼 색상 변경 (초록/빨강)\n- 주문 미리보기에 예상 총액 표시\n- 잔고/보유량 부족 시 유효성 오류 표시\n- 성공 toast, 실패 toast 동작\n- 성공 후 폼 리셋\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 가상 매매 CRUD API 완료 후 시작 가능\n- [FE] 가상 투자 페이지 레이아웃 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:49:16.182Z",
+      "updatedAt": "2026-04-03T14:49:16.182Z",
+      "comments": []
+    },
+    {
+      "id": "task-p4-fe-ai-signals",
+      "title": "[FE] AI 매수/매도 시그널 위젯",
+      "description": "**목표**:\nAI 시그널을 가격 차트에 마커로 오버레이하고 시그널 목록을 함께 표시하는 위젯을 구현한다.\n\n**요구사항**:\n1. widgets/ai-signals/ui/AISignals.tsx 생성\n2. /api/stocks/[code]/signals 페칭\n3. lightweight-charts 가격 차트에 매수(초록 위화살표), 매도(빨강 아래화살표) 마커\n4. 사이드 테이블: 날짜, 유형, 가격, 신뢰도(%)\n5. 테이블 시그널 클릭 시 차트 해당 날짜로 스크롤\n\n**수락 기준**:\n- 가격 차트에 매수/매도 시그널 마커 오버레이\n- 시그널 목록 테이블: 날짜, 유형, 가격, 신뢰도\n- 신뢰도 프로그레스 바 또는 퍼센트로 표시\n- 테이블 항목 클릭 시 차트 해당 날짜로 이동\n- 시그널 계산 중 로딩 상태\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] AI 매매 시그널 생성 서비스 완료 후 시작 가능\n- [FE] 차트 라이브러리 설치 및 프리미티브 컴포넌트 완료 후 시작 가능\n- [FE] 가상 투자 페이지 레이아웃 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:49:17.183Z",
+      "updatedAt": "2026-04-03T14:49:17.183Z",
+      "comments": []
+    },
+    {
+      "id": "task-p4-fe-backtest-chart",
+      "title": "[FE] 백테스팅 차트 위젯",
+      "description": "**목표**:\n전략 선택 및 날짜 범위를 입력받아 백테스팅 결과를 에퀴티 커브와 성과 지표로 시각화하는 위젯을 구현한다.\n\n**요구사항**:\n1. widgets/backtest/ui/BacktestChart.tsx 생성\n2. 입력 폼: 종목코드, 전략 선택 드롭다운, 날짜 범위 피커, 초기 자금\n3. POST /api/backtest 호출\n4. 에퀴티 커브 영역 차트 (recharts AreaChart)\n5. 성과 지표 카드: 수익률%, 최대낙폭%, 승률, 거래 횟수\n6. 거래 로그 테이블: 진입/청산 날짜, 가격, 거래당 손익\n\n**수락 기준**:\n- 전략 선택 드롭다운에 사용 가능한 전략 목록 표시\n- 날짜 범위 피커 동작\n- 제출 후 에퀴티 커브 영역 차트 렌더링\n- 성과 지표 4개 카드 표시 (수익률, 낙폭, 승률, 거래수)\n- 거래 로그 테이블에 진입/청산 정보 표시\n- 백테스트 계산 중 로딩 상태\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] 백테스팅 엔진 서비스 완료 후 시작 가능\n- [FE] 차트 라이브러리 설치 및 프리미티브 컴포넌트 완료 후 시작 가능\n- [FE] 가상 투자 페이지 레이아웃 완료 후 시작 가능",
+      "status": "TODO",
+      "createdAt": "2026-04-03T14:49:35.780Z",
+      "updatedAt": "2026-04-03T14:49:35.780Z",
+      "comments": []
+    }
+  ],
+  "agents": [
+    {
+      "id": "agent-pm",
+      "name": "PM Agent",
+      "role": "Product Manager",
+      "status": "IDLE",
+      "lastActiveAt": "2026-04-03T14:44:49.000Z"
+    }
+  ]
+}

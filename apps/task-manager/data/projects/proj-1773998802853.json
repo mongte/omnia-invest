@@ -1,56 +1,6 @@
 {
   "tasks": [
     {
-      "id": "task-1",
-      "title": "[FE] Fix project selection and routing issue",
-      "description": "Issue: When multiple projects exist, selecting a different project does not update the route or change the active project view.\n\nRequirements:\n1. Update the URL route dynamically to `/projects/[projectId]` upon clicking a project in the sidebar/list.\n2. Sync the global state representing the current active project with the URL route change.\n\nFSD Architecture Location:\n- `features/project-management/ui/ProjectRouteSync.tsx` (for routing/sync logic)\n- `entities/project/model/store.ts` (for store state synchronization)\n\nNote: The frontend must handle the project switch gracefully and update the URL accordingly. This title and description are immutable.",
-      "status": "IN_REVIEW",
-      "comments": [
-        {
-          "id": "comment-1774523285125",
-          "agentId": "agent-fe-1",
-          "content": "Implemented fix for ProjectRouteSync.tsx. Separated useEffect hooks to break the bi-directional race condition loop that caused selected projects to revert to the URL state. Tested route sync logic.",
-          "createdAt": "2026-03-26T11:08:05.125Z"
-        }
-      ],
-      "createdAt": "2026-03-20T09:28:13.215Z",
-      "updatedAt": "2026-03-26T11:08:06.296Z",
-      "assigneeId": "agent-fe-1"
-    },
-    {
-      "id": "task-2",
-      "title": "[FE] 서버 응답 및 유효하지 않은 프로젝트 처리 방어 로직 추가",
-      "description": "요구사항:\n1. 화면(사이드바/대시보드 등)에 서버가 반환한 모든 프로젝트가 정상적으로 렌더링되는지 확인합니다.\n2. 프로젝트 데이터 내 특정 필수 필드가 앱에서 누락/손상되었을 때 (예: 형식이 맞지 않는 json 데이터) 프론트엔드단에서 에러가 전파되어 화면이 깨지거나 프로젝트 리스트가 통째로 보이지 않는 현상을 방어(Error Boundary, Fallback UI)하세요.\n\nFSD 아키텍처 위치:\n- `widgets/project-list` 혹은 `features/project-management` 영역의 프로젝트 렌더링 및 스토어 로직",
-      "status": "IN_REVIEW",
-      "comments": [
-        {
-          "id": "comment-1774523413121",
-          "agentId": "agent-fe-1",
-          "content": "Implemented ProjectErrorBoundary and ProjectItem to isolate project data rendering errors. Added defensive fallback in store.ts to handle non-array API responses. Gracefully degrading UI instead of full crash.",
-          "createdAt": "2026-03-26T11:10:13.121Z"
-        }
-      ],
-      "createdAt": "2026-03-24T10:44:27.077Z",
-      "updatedAt": "2026-03-26T11:10:14.286Z",
-      "assigneeId": "agent-fe-1"
-    },
-    {
-      "title": "[FE] 프로젝트 목록 전환 시 무한 루프 발생하는 버그 수정",
-      "description": "Task Manager의 프로젝트 상세(http://localhost:3000/projects/proj-1773998802853) 등에서 다른 프로젝트를 선택할 때 상태 또는 라우팅 변경이 연속으로 트리거되어 무한 루프(순차 선택)가 발생하는 버그를 수정해야 합니다. 사이드바나 프로젝트 목록의 클릭 이벤트 핸들러, 그리고 선택된 프로젝트 파라미터를 모니터링하는 useEffect 의존성 루프 로직에 불필요한 재렌더링 및 라우팅 루프가 없는지 점검하세요.",
-      "status": "IN_REVIEW",
-      "comments": [
-        {
-          "id": "comment-new",
-          "agentId": "agent-fe-1",
-          "content": "Fixed the infinite loop bug by removing the Store -> URL sync effect in ProjectRouteSync.tsx. The navigation should be driven exclusively by the URL (via next/link), preventing bidirectional state-routing race conditions.",
-          "createdAt": "2026-04-01T15:50:00.000Z"
-        }
-      ],
-      "createdAt": "2026-04-01T15:24:41.032Z",
-      "updatedAt": "2026-04-01T15:46:39.820Z",
-      "assigneeId": "agent-fe-1"
-    },
-    {
       "id": "task-17751277193N",
       "title": "[FE] 프로젝트 전환 시 JSON 데이터 로드 실패 버그 수정",
       "description": "**목표**:\n프로젝트 목록에서 다른 프로젝트를 클릭(전환)할 때, 해당 프로젝트의 JSON 데이터(태스크, 에이전트)를 정상적으로 불러오지 못하는 버그를 수정합니다.\n\n**현상**:\n- 사이드바에서 다른 프로젝트를 클릭하면, 이전 프로젝트의 데이터가 그대로 남아있거나 데이터가 비어 보이는 현상 발생\n- 프로젝트 전환 후 태스크/에이전트 목록이 새 프로젝트 기준으로 갱신되지 않음\n\n**근본 원인 조사 방향**:\n1. Zustand 스토어(task, agent, project)에서 프로젝트 전환 시 상태 초기화 및 재패칭 로직 확인\n2. REST API 호출 시 projectId 쿼리 파라미터가 올바르게 전환되는지 확인 (/api/tasks?projectId=<ID>, /api/agents?projectId=<ID>)\n3. SSE 스트림(/api/stream?projectId=<ID>) 재연결 로직 확인 - 프로젝트 전환 시 기존 스트림 해제 후 새 projectId로 재구독하는지 확인\n4. 데이터 파일 기반 DB 구조 확인: apps/task-manager/data/projects/{projectId}.json 파일이 존재하고 올바른 형식인지 검증\n\n**요구사항**:\n1. 프로젝트 전환 시 Zustand 스토어의 tasks, agents 상태를 즉시 초기화(클리어)한 후 새 프로젝트 데이터로 재패칭할 것\n2. API 클라이언트에서 projectId 파라미터가 현재 활성 프로젝트와 동기화되어 있는지 보장할 것\n3. SSE 스트림이 프로젝트 전환 시 이전 연결을 정리(cleanup)하고 새 projectId로 재구독할 것\n4. 프로젝트 전환 중 로딩 상태를 사용자에게 표시하여 UX를 개선할 것\n5. 존재하지 않거나 빈 프로젝트 데이터에 대한 방어 로직(빈 배열 반환, 에러 핸들링) 포함할 것\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/entities/task/model/store.ts (태스크 스토어 초기화/재패칭)\n- apps/task-manager/src/entities/agent/model/store.ts (에이전트 스토어 초기화/재패칭)\n- apps/task-manager/src/entities/project/model/store.ts (프로젝트 전환 액션)\n- apps/task-manager/src/features/project-management/ (프로젝트 전환 로직)\n- apps/task-manager/src/shared/api/ (API 클라이언트의 projectId 동기화)\n- apps/task-manager/src/app/ (SSE 스트림 관리)\n\n**수락 기준**:\n- 사이드바에서 프로젝트 A에서 프로젝트 B로 전환 시, 칸반 보드에 프로젝트 B의 태스크가 정상 표시됨\n- 프로젝트 전환 시 이전 프로젝트의 태스크/에이전트 데이터가 잔존하지 않음\n- 빈 프로젝트(태스크 0개)로 전환 시 빈 칸반 보드가 정상 렌더링됨\n- 존재하지 않는 projectId로 접근 시 적절한 에러 처리가 동작함\n- 프로젝트 전환 중 로딩 인디케이터가 표시됨\n- 브라우저 콘솔에 네트워크 에러나 상태 관련 에러가 발생하지 않음",
@@ -110,36 +60,76 @@
       "id": "task-17751311343N",
       "title": "[BE] 프로젝트 삭제 시 태스크 유무에 따른 조건부 삭제/아카이브 분기 처리",
       "description": "**목표**:\n프로젝트 삭제(DELETE /api/projects/:id) 시, 해당 프로젝트에 태스크가 하나도 없으면 JSON 파일을 완전히 삭제(hard delete)하고, 태스크가 하나라도 존재하면 기존처럼 projects-delete/ 디렉토리로 이동(soft delete)하도록 동작을 변경합니다.\n\n**현재 동작**:\n- archiveProjectDb()가 무조건 projects-delete/로 파일을 이동함 (태스크 유무 무관)\n\n**변경 요구사항**:\n1. apps/task-manager/src/shared/api/local-db/index.ts에 deleteOrArchiveProjectDb(projectId: string) 함수를 추가하거나 기존 archiveProjectDb를 수정할 것\n2. 함수 내부에서 해당 projectId의 JSON 파일을 읽어 tasks 배열의 길이를 확인할 것\n3. tasks.length === 0이면: fs.unlink()로 JSON 파일을 완전 삭제할 것\n4. tasks.length > 0이면: 기존 archiveProjectDb 로직 그대로 projects-delete/ 디렉토리로 이동할 것\n5. 파일이 존재하지 않는 경우(ENOENT) 에러는 무시할 것 (방어 처리)\n6. apps/task-manager/src/app/api/projects/[id]/route.ts의 DELETE 핸들러에서 새 함수를 호출하도록 변경할 것\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/shared/api/local-db/index.ts (deleteOrArchiveProjectDb 함수 추가/수정)\n- apps/task-manager/src/app/api/projects/[id]/route.ts (DELETE 핸들러에서 호출 변경)\n\n**수락 기준**:\n- 태스크가 0개인 프로젝트 삭제 시: data/projects/{projectId}.json 파일이 완전히 삭제되고, data/projects-delete/에 파일이 생성되지 않음\n- 태스크가 1개 이상인 프로젝트 삭제 시: data/projects/{projectId}.json이 data/projects-delete/{projectId}.json으로 이동됨 (기존 동작 유지)\n- 프로젝트 JSON 파일이 존재하지 않는 경우에도 에러 없이 정상 처리됨\n- projects.json 목록에서 해당 프로젝트가 정상적으로 제거됨 (기존 동작 유지)\n- TypeScript strict mode에서 타입 오류 없음\n- DELETE /api/projects/:id API가 200 응답을 정상 반환함",
-      "status": "IN_PROGRESS",
-      "comments": [],
+      "status": "IN_REVIEW",
+      "comments": [
+        {
+          "id": "comment-1775223878059",
+          "agentId": "agent-be-1",
+          "content": "[작업 시작] IN_PROGRESS 유지. 구현 계획: 1) local-db/index.ts에 deleteOrArchiveProjectDb 함수 추가 - tasks.length===0이면 fs.unlink (hard delete), tasks.length>0이면 기존 archiveProjectDb 로직 실행, ENOENT 무시 2) app/api/projects/[id]/route.ts에서 archiveProjectDb → deleteOrArchiveProjectDb로 교체. 변경 파일: local-db/index.ts, projects/[id]/route.ts",
+          "createdAt": "2026-04-03T13:44:38.059Z"
+        },
+        {
+          "id": "comment-1775223984247",
+          "agentId": "agent-be-1",
+          "content": "[작업 완료] 변경 파일: apps/task-manager/src/shared/api/local-db/index.ts, apps/task-manager/src/app/api/projects/[id]/route.ts. 수락 기준 달성: 1) tasks===0 프로젝트 삭제 시 fs.unlink로 완전 삭제, projects-delete/에 파일 미생성 ✅ 2) tasks>=1 프로젝트 삭제 시 archiveProjectDb 호출로 projects-delete/로 이동 ✅ 3) ENOENT(파일 없음) 방어 처리 ✅ 4) projects.json 목록 제거 기존 로직 유지 ✅ 5) TypeScript strict mode 타입 오류 없음 (npx tsc --noEmit 통과) ✅ 6) DELETE API 200 응답 정상 ✅. 자기 검토 완료. QA 검증 요청.",
+          "createdAt": "2026-04-03T13:46:24.247Z"
+        }
+      ],
       "createdAt": "2026-04-02T11:58:54.485Z",
-      "updatedAt": "2026-04-02T14:08:54.753Z",
+      "updatedAt": "2026-04-03T13:46:52.106Z",
       "assigneeId": "agent-be-1"
     },
     {
       "id": "task-1743609700001",
       "title": "[BE] 태스크 삭제 API 엔드포인트 구현 (DELETE /api/tasks)",
       "description": "**목표**:\n개별 태스크를 삭제할 수 있는 DELETE API 엔드포인트를 구현합니다. 현재 tasks API route에는 GET(조회)과 POST(생성/업데이트)만 존재하며, DELETE 핸들러가 없습니다.\n\n**요구사항**:\n1. apps/task-manager/src/app/api/tasks/route.ts에 DELETE 핸들러를 추가할 것\n2. 요청 형식: DELETE /api/tasks?projectId=<ID>&taskId=<TASK_ID> (쿼리 파라미터로 projectId와 taskId를 받음)\n3. projectId 또는 taskId가 누락된 경우 400 에러 응답을 반환할 것\n4. 해당 projectId의 JSON 파일(data/projects/{projectId}.json)에서 tasks 배열 내 일치하는 taskId를 찾아 제거할 것\n5. taskId에 해당하는 태스크가 없는 경우 404 에러 응답을 반환할 것\n6. 삭제 성공 시 200 응답과 함께 삭제된 태스크 정보를 반환할 것\n7. shared/api/local-db/index.ts에 deleteTask(projectId: string, taskId: string) 헬퍼 함수를 추가할 것 - getDb로 읽고, tasks 배열에서 해당 id를 filter로 제거 후 saveDb로 저장\n8. deleteTask 함수는 삭제된 Task 객체를 반환하거나, 찾지 못한 경우 null을 반환할 것\n9. TypeScript strict mode 준수, any 타입 사용 금지\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/app/api/tasks/route.ts (DELETE 핸들러 추가)\n- apps/task-manager/src/shared/api/local-db/index.ts (deleteTask 헬퍼 함수 추가)\n\n**의존성**:\n- 이 태스크가 완료되어야 [FE] 태스크 삭제 UI 구현 태스크(task-1743609700002)에서 API를 호출할 수 있습니다.\n\n**수락 기준**:\n- DELETE /api/tasks?projectId=proj-xxx&taskId=task-xxx 호출 시 200 응답과 삭제된 태스크 객체 반환\n- projectId 누락 시 400 응답: {\"error\": \"projectId is required\"}\n- taskId 누락 시 400 응답: {\"error\": \"taskId is required\"}\n- 존재하지 않는 taskId 전달 시 404 응답: {\"error\": \"Task not found\"}\n- 삭제 후 GET /api/tasks?projectId=proj-xxx 조회 시 해당 태스크가 목록에서 제거되어 있음\n- data/projects/{projectId}.json 파일에서 해당 태스크가 물리적으로 제거됨\n- TypeScript 컴파일 에러 없음 (npx tsc --noEmit 통과)",
-      "status": "TODO",
-      "comments": [],
+      "status": "IN_REVIEW",
+      "comments": [
+        {
+          "id": "comment-1775224749512",
+          "agentId": "agent-be-1",
+          "content": "[작업 시작] IN_PROGRESS 전환. 구현 계획: 1) shared/api/local-db/index.ts에 deleteTask(projectId, taskId) 헬퍼 함수 추가 - getDb로 읽고 tasks 배열 filter 후 saveDb 저장, 삭제된 Task 반환 또는 null 2) app/api/tasks/route.ts에 DELETE 핸들러 추가 - 쿼리 파라미터 projectId/taskId 유효성 검사(400), deleteTask 호출 후 미존재 시 404, 성공 시 200+삭제된 태스크 반환",
+          "createdAt": "2026-04-03T13:59:09.512Z"
+        },
+        {
+          "id": "comment-1775224860142",
+          "agentId": "agent-be-1",
+          "content": "[작업 완료] 변경 파일: apps/task-manager/src/shared/api/local-db/index.ts (deleteTask 함수 추가), apps/task-manager/src/app/api/tasks/route.ts (DELETE 핸들러 추가). 수락 기준 달성: 1) DELETE /api/tasks?projectId=&taskId= 호출 시 200+삭제 태스크 반환 ✅ 2) projectId 누락 시 400 응답 ✅ 3) taskId 누락 시 400 응답 ✅ 4) 존재하지 않는 taskId 시 404 응답 ✅ 5) withLock으로 동시성 보호하여 tasks 배열 splice 후 saveDb 저장 ✅ 6) TypeScript strict mode 컴파일 에러 없음 (npx tsc --noEmit 통과) ✅. 자기 검토 완료. QA 검증 요청.",
+          "createdAt": "2026-04-03T14:01:00.142Z"
+        }
+      ],
       "createdAt": "2026-04-02T18:00:00.000Z",
-      "updatedAt": "2026-04-02T18:00:00.000Z"
+      "updatedAt": "2026-04-03T14:01:06.159Z",
+      "assigneeId": "agent-be-1"
     },
     {
       "id": "task-1743609700002",
       "title": "[FE] 태스크 삭제 UI 구현 (삭제 버튼, 확인 다이얼로그, 스토어 액션)",
       "description": "**목표**:\n칸반 보드의 태스크 카드에서 개별 태스크를 삭제할 수 있는 UI를 구현합니다. 삭제 버튼 클릭 시 확인 다이얼로그를 표시하고, 확인 후 DELETE API를 호출하여 태스크를 제거합니다.\n\n**요구사항**:\n\n[shadcn/ui AlertDialog 컴포넌트 추가]\n1. npx shadcn@latest add alert-dialog 명령으로 AlertDialog 컴포넌트를 설치할 것 (현재 shared/ui/에 alert-dialog.tsx가 없음)\n2. 설치된 AlertDialog 컴포넌트가 apps/task-manager/src/shared/ui/alert-dialog.tsx에 위치할 것\n\n[Zustand 스토어 - deleteTask 액션 추가]\n3. entities/task/model/store.ts의 TaskActions 인터페이스에 deleteTask(taskId: string, projectId: string): Promise<void> 액션을 추가할 것\n4. deleteTask 구현: Optimistic update로 즉시 tasks 배열에서 해당 태스크를 제거한 후, DELETE /api/tasks?projectId=<ID>&taskId=<TASK_ID> API를 호출할 것\n5. API 호출 실패 시 fetchTasks(projectId)로 상태를 롤백할 것\n6. 에러 발생 시 error 상태를 설정할 것\n\n[TaskCard UI - 삭제 버튼 추가]\n7. features/task-management/ui/TaskCard.tsx의 태스크 상세 다이얼로그(DialogContent) 내에 삭제 버튼을 추가할 것\n8. 삭제 버튼은 Trash2 아이콘(lucide-react)을 사용하고, 빨간색 계열 스타일링을 적용할 것 (예: text-red-500 hover:text-red-700)\n9. 삭제 버튼 클릭 시 AlertDialog를 열어 \"정말 이 태스크를 삭제하시겠습니까?\" 확인 메시지를 표시할 것\n10. AlertDialog의 \"삭제\" 버튼 클릭 시 useTaskStore의 deleteTask 액션을 호출할 것\n11. AlertDialog의 \"취소\" 버튼 클릭 시 다이얼로그를 닫고 아무 작업도 하지 않을 것\n12. 삭제 진행 중에는 버튼에 로딩 상태를 표시할 것 (선택사항)\n13. 삭제 완료 후 상세 다이얼로그도 함께 닫힐 것\n\n[접근성]\n14. 삭제 버튼에 aria-label=\"태스크 삭제\"를 추가할 것\n15. AlertDialog에 적절한 제목과 설명 텍스트를 포함할 것\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/shared/ui/alert-dialog.tsx (신규 - shadcn/ui 컴포넌트 추가)\n- apps/task-manager/src/entities/task/model/store.ts (deleteTask 액션 추가)\n- apps/task-manager/src/features/task-management/ui/TaskCard.tsx (삭제 버튼 및 확인 다이얼로그 UI)\n\n**의존성**:\n- [BE] 태스크 삭제 API 엔드포인트 구현 태스크(task-1743609700001)가 완료된 후 API 연동이 가능합니다. 단, 스토어 액션과 UI는 API 완성 전에 구현을 시작할 수 있습니다.\n\n**수락 기준**:\n- 태스크 카드 클릭 → 상세 다이얼로그 → 삭제 버튼이 표시됨\n- 삭제 버튼 클릭 시 AlertDialog 확인 다이얼로그가 나타남\n- 다이얼로그에 \"정말 이 태스크를 삭제하시겠습니까?\" 또는 유사한 확인 메시지가 표시됨\n- \"삭제\" 확인 시 칸반 보드에서 해당 태스크 카드가 즉시 사라짐 (Optimistic update)\n- \"취소\" 클릭 시 아무 변화 없이 다이얼로그가 닫힘\n- API 호출 실패 시 태스크가 다시 목록에 나타남 (롤백)\n- 삭제 후 페이지 새로고침해도 해당 태스크가 목록에 없음 (서버 데이터 동기화 확인)\n- Trash2 아이콘이 빨간색 계열로 표시됨\n- TypeScript strict mode에서 타입 오류 없음\n- Tailwind CSS만 사용 (CSS/SCSS 모듈 사용 금지)",
-      "status": "TODO",
+      "status": "IN_REVIEW",
       "comments": [
         {
           "id": "comment-1775139148863",
           "agentId": "agent-fe-1",
           "content": "[작업 시작] IN_PROGRESS로 전환. DELETE API, deleteTask 스토어 액션, TaskCard 삭제 버튼 및 AlertDialog 구현 예정",
           "createdAt": "2026-04-02T14:12:28.863Z"
+        },
+        {
+          "id": "comment-1775223825778",
+          "agentId": "agent-fe-1",
+          "content": "[작업 시작] IN_PROGRESS 전환. 구현 계획: 1) shared/ui/alert-dialog.tsx 생성 (AlertDialog 컴포넌트) 2) entities/task/model/store.ts에 deleteTask 액션 추가 (Optimistic update + 롤백) 3) features/task-management/ui/TaskCard.tsx에 Trash2 아이콘 삭제 버튼 + AlertDialog 확인 다이얼로그 추가. BE API(task-1743609700001) 미완료 상태이므로 DELETE /api/tasks 호출 로직은 구현 후 API 완료 시 연동 가능하도록 구성.",
+          "createdAt": "2026-04-03T13:43:45.778Z"
+        },
+        {
+          "id": "comment-1775223995962",
+          "agentId": "agent-fe-1",
+          "content": "[작업 완료] 변경 파일 목록:\n1. apps/task-manager/src/shared/ui/alert-dialog.tsx (신규 생성)\n   - @radix-ui/react-alert-dialog 설치 후 shadcn/ui 패턴으로 AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel 컴포넌트 구현\n\n2. apps/task-manager/src/entities/task/model/store.ts (deleteTask 액션 추가)\n   - TaskActions 인터페이스에 deleteTask(taskId, projectId): Promise<void> 추가\n   - Optimistic update: 즉시 tasks 배열에서 제거\n   - API 실패 시 previousTasks로 rollback + fetchTasks 재호출\n   - DELETE /api/tasks?projectId=<ID>&taskId=<TASK_ID> 호출\n\n3. apps/task-manager/src/features/task-management/ui/TaskCard.tsx (삭제 버튼 및 AlertDialog UI 추가)\n   - Trash2 아이콘 + text-red-500 스타일 삭제 버튼 추가\n   - AlertDialog 확인 다이얼로그 구현 ('정말 이 태스크를 삭제하시겠습니까?' 메시지)\n   - isDeleting 상태로 Loader2 스피너 로딩 표시\n   - 삭제 성공 시 dialogOpen=false로 상세 다이얼로그 자동 닫힘\n   - aria-label='태스크 삭제' 접근성 처리\n   - Dialog를 controlled(open/onOpenChange)로 전환하여 삭제 후 닫기 제어\n\n수락 기준 달성 확인:\n- 삭제 버튼: 태스크 상세 다이얼로그 하단 Danger Zone에 Trash2 아이콘과 함께 표시됨\n- AlertDialog: 삭제 버튼 클릭 시 확인 다이얼로그 표시됨\n- Optimistic update: 확인 즉시 칸반 보드에서 카드 사라짐\n- 취소: AlertDialogCancel 클릭 시 아무 변화 없음\n- 롤백: API 실패 시 previousTasks로 복원\n- Trash2 빨간색: text-red-500 hover:text-red-700 적용\n- 접근성: aria-label='태스크 삭제' 추가\n- TypeScript strict mode: npx tsc --noEmit 통과 (오류 없음)\n- Tailwind CSS only 준수\n\n자기 검토 완료. QA 검증 요청합니다.",
+          "createdAt": "2026-04-03T13:46:35.962Z"
         }
       ],
       "createdAt": "2026-04-02T18:00:01.000Z",
-      "updatedAt": "2026-04-02T14:12:28.863Z"
+      "updatedAt": "2026-04-03T13:46:42.196Z",
+      "assigneeId": "agent-fe-1"
     }
   ],
   "agents": [
@@ -156,19 +146,13 @@
     },
     {
       "id": "agent-fe-1",
-      "name": "Frontend Agent",
-      "role": "Frontend Developer",
-      "status": "WORKING",
-      "currentTaskId": "task-1743609700002",
-      "lastActiveAt": "2026-04-02T14:11:38.000Z"
+      "status": "IDLE",
+      "lastActiveAt": "2026-04-03T13:46:42.000Z"
     },
     {
       "id": "agent-be-1",
-      "name": "Backend Agent",
-      "role": "Backend Architect",
-      "status": "WORKING",
-      "currentTaskId": "task-17751311343N",
-      "lastActiveAt": "2026-04-02T14:05:32.000Z"
+      "status": "IDLE",
+      "lastActiveAt": "2026-04-03T14:01:06.000Z"
     }
   ]
 }

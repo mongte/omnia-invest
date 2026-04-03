@@ -4,5 +4,11 @@
     "title": "task manager issue01",
     "color": "blue",
     "icon": "Folder"
+  },
+  {
+    "id": "proj-1775224907121",
+    "title": "pharos-lab",
+    "color": "orange",
+    "icon": "Folder"
   }
 ]

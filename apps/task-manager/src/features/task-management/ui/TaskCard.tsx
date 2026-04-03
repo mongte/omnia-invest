@@ -1,19 +1,64 @@
+'use client';
+
+import { useState } from 'react';
 import { Task } from '@/entities/task';
+import { useTaskStore } from '@/entities/task';
+import { useProjectStore } from '@/entities/project/model/store';
 import { Card, CardHeader, CardTitle, CardContent } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
-import { MessageSquare, Calendar, Edit2, Users } from 'lucide-react';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/ui/dialog';
+import { MessageSquare, Calendar, Edit2, Users, Trash2, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '@/shared/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/shared/ui/alert-dialog';
 import { useAgentStore } from '@/entities/agent';
 
-export const TaskCard = ({ task }: { task: Task }) => {
+interface TaskCardProps {
+  task: Task;
+}
+
+export const TaskCard = ({ task }: TaskCardProps) => {
   const agents = useAgentStore(state => state.agents);
+  const deleteTask = useTaskStore(state => state.deleteTask);
+  const selectedProjectId = useProjectStore(state => state.selectedProjectId);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   const assigneeInfo = agents.find(a => a.id === task.assigneeId);
-  const assigneeInitials = assigneeInfo ? assigneeInfo.name.substring(0, 2).toUpperCase() : 'UN';
-  const assigneeShorthand = assigneeInfo ? assigneeInfo.name : (task.assigneeId || 'Unassigned');
+  const assigneeName = assigneeInfo?.name ?? assigneeInfo?.id;
+  const assigneeInitials = assigneeName ? assigneeName.substring(0, 2).toUpperCase() : 'UN';
+  const assigneeShorthand = assigneeName ?? task.assigneeId ?? 'Unassigned';
+
+  const handleDelete = async () => {
+    if (!selectedProjectId || !task.id) return;
+    setIsDeleting(true);
+    try {
+      await deleteTask(task.id, selectedProjectId);
+      setDialogOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
-    <Dialog>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
         <Card className="mb-0 border border-slate-200/60 shadow-sm rounded-lg hover:border-slate-300 hover:shadow-md transition-all cursor-pointer">
           <CardHeader className="p-4 pb-2">
@@ -21,7 +66,7 @@ export const TaskCard = ({ task }: { task: Task }) => {
           </CardHeader>
           <CardContent className="p-4 pt-0 flex flex-col gap-3">
             <p className="text-xs text-slate-500 leading-snug line-clamp-2">{task.description}</p>
-            
+
             <div>
               <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-200 text-[10px] px-2.5 py-0.5">
                 Core Feature
@@ -81,7 +126,7 @@ export const TaskCard = ({ task }: { task: Task }) => {
               {task.description}
             </div>
           </div>
-          
+
           <div className="flex flex-col gap-2 mt-4 border-t pt-4">
             <span className="text-sm font-semibold flex items-center gap-2">
               <MessageSquare className="w-4 h-4" /> Activity Log
@@ -106,7 +151,43 @@ export const TaskCard = ({ task }: { task: Task }) => {
               )}
             </div>
           </div>
+
+          <div className="flex items-center justify-between mt-2 pt-4 border-t">
+            <span className="text-xs text-slate-400">Danger Zone</span>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="태스크 삭제"
+                  className="flex items-center gap-1.5 text-red-500 hover:text-red-700 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-1 rounded px-2 py-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  삭제
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>태스크 삭제</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    정말 이 태스크를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>취소</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="flex items-center gap-2"
+                  >
+                    {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    삭제
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
+        <DialogClose className="sr-only" />
       </DialogContent>
     </Dialog>
   );

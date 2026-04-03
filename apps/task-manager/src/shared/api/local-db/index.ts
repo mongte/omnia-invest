@@ -110,6 +110,49 @@ export const archiveProjectDb = async (projectId: string): Promise<void> => {
   }
 };
 
+export const deleteOrArchiveProjectDb = async (projectId: string): Promise<void> => {
+  const srcFile = getProjectDbFile(projectId);
+  try {
+    const data = await fs.readFile(srcFile, 'utf-8');
+    const parsed = JSON.parse(data) as DbSchema;
+    const hasTasks = Array.isArray(parsed.tasks) && parsed.tasks.length > 0;
+
+    if (hasTasks) {
+      await archiveProjectDb(projectId);
+    } else {
+      try {
+        await fs.unlink(srcFile);
+      } catch (unlinkErr) {
+        const nodeErr = unlinkErr as NodeJS.ErrnoException;
+        if (nodeErr.code !== 'ENOENT') {
+          throw unlinkErr;
+        }
+        // ENOENT — file already gone, silently ignore
+      }
+    }
+  } catch (readErr) {
+    const nodeErr = readErr as NodeJS.ErrnoException;
+    if (nodeErr.code === 'ENOENT') {
+      // File doesn't exist — nothing to delete or archive
+      return;
+    }
+    console.error('Failed to deleteOrArchive project DB file:', readErr);
+  }
+};
+
+export const deleteTask = async (projectId: string, taskId: string): Promise<Task | null> => {
+  return withLock(projectId, async () => {
+    const db = await getDb(projectId);
+    const taskIndex = db.tasks.findIndex((t) => t.id === taskId);
+    if (taskIndex === -1) {
+      return null;
+    }
+    const [deletedTask] = db.tasks.splice(taskIndex, 1);
+    await saveDb(projectId, db);
+    return deletedTask;
+  });
+};
+
 export const getProjectsList = async (): Promise<Project[]> => {
   try {
     await fs.mkdir(DB_DIR, { recursive: true });

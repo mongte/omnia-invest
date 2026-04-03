@@ -14,6 +14,7 @@ export interface TaskActions {
   addTask: (task: Task, projectId: string) => Promise<void>;
   updateTaskStatus: (taskId: string, status: TaskStatus, projectId: string) => Promise<void>;
   clearCompleted: (projectId: string) => Promise<void>;
+  deleteTask: (taskId: string, projectId: string) => Promise<void>;
 }
 
 export type TaskStore = TaskState & TaskActions;
@@ -60,8 +61,8 @@ export const useTaskStore = create<TaskStore>()(
 
         if (!res.ok) throw new Error('Failed to add task');
 
-        const createdTask = await res.json();
-        set({ tasks: [...get().tasks, createdTask] });
+        // SSE도 fetchTasks를 트리거하지만, 즉시 반영을 위해 명시적 호출
+        await get().fetchTasks(projectId, true);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         set({ error: message });
@@ -112,6 +113,29 @@ export const useTaskStore = create<TaskStore>()(
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         set({ error: message });
+      }
+    },
+
+    deleteTask: async (taskId: string, projectId: string) => {
+      const previousTasks = get().tasks;
+      try {
+        // Optimistic update
+        set({
+          tasks: previousTasks.filter(t => t.id !== taskId),
+        });
+
+        const res = await fetch(`/api/tasks?projectId=${projectId}&taskId=${taskId}`, {
+          method: 'DELETE',
+        });
+
+        if (!res.ok) {
+          set({ tasks: previousTasks });
+          await get().fetchTasks(projectId);
+          throw new Error('Failed to delete task');
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message, tasks: previousTasks });
       }
     },
   }))
