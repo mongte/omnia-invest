@@ -1,5 +1,24 @@
 {
-  "language": "korean",
+  "permissions": {
+    "allow": [
+      "Bash(nx *)",
+      "Bash(pnpm *)",
+      "Bash(npm run *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)"
+    ],
+    "deny": [
+      "Bash(git push *)"
+    ],
+    "ask": [
+      "Bash(rm -rf *)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Edit(./.env)"
+    ]
+  },
   "worktree": {
     "symlinkDirectories": [
       "node_modules",
@@ -12,30 +31,8 @@
       "apps/task-manager"
     ]
   },
-  "permissions": {
-    "allow": [
-      "Bash(nx *)",
-      "Bash(pnpm *)",
-      "Bash(npm run *)",
-      "Bash(git status)",
-      "Bash(git diff *)",
-      "Bash(git log *)"
-    ],
-    "ask": [
-      "Bash(rm -rf *)",
-      "Read(./.env)",
-      "Read(./.env.*)",
-      "Read(./secrets/**)",
-      "Edit(./.env)"
-    ],
-    "deny": [
-      "Bash(git push *)"
-    ]
+  "enabledPlugins": {
+    "harness@harness-marketplace": true
   },
-  "mcpServers": {
-    "qmd": {
-      "command": "qmd",
-      "args": ["mcp"]
-    }
-  }
+  "language": "korean"
 }
