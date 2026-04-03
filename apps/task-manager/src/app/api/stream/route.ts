@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { subscribeDbChange } from '@/shared/api/local-db/event-bus';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,49 +10,30 @@ export async function GET(request: Request) {
   const encoder = new TextEncoder();
   const customReadable = new ReadableStream({
     start(controller) {
-      // Watch the project-specific DB file if projectId provided, otherwise fallback
-      const dbPath = projectId
-        ? path.join(process.cwd(), 'data', 'projects', `${projectId}.json`)
-        : path.join(process.cwd(), 'data', 'current_project.json');
-
-      const notify = () => {
-        try {
-          controller.enqueue(encoder.encode(`data: update\n\n`));
-        } catch (e) {
-          // ignore
-        }
-      };
-
-      // Initial ping to ensure connection immediately
       controller.enqueue(encoder.encode(`data: connected\n\n`));
 
-      let watcher: fs.FSWatcher | null = null;
-      try {
-        if (fs.existsSync(dbPath)) {
-          watcher = fs.watch(dbPath, (eventType) => {
-            if (eventType === 'change') {
-              notify();
+      const unsubscribe = projectId
+        ? subscribeDbChange(projectId, () => {
+            try {
+              controller.enqueue(encoder.encode(`data: update\n\n`));
+            } catch {
+              // Stream closed
             }
-          });
-        }
-      } catch (e) {
-        console.error('Failed to watch project DB file:', e);
-      }
+          })
+        : () => {};
 
-      // Keep connection alive
       const timer = setInterval(() => {
         try {
-          controller.enqueue(encoder.encode(`:\n\n`)); // SSE comment keeps alive
+          controller.enqueue(encoder.encode(`:\n\n`));
         } catch {
           clearInterval(timer);
-          if (watcher) watcher.close();
+          unsubscribe();
         }
       }, 30000);
 
-      // Cleanup when stream is canceled
       return () => {
         clearInterval(timer);
-        if (watcher) watcher.close();
+        unsubscribe();
       };
     },
   });
@@ -62,7 +42,7 @@ export async function GET(request: Request) {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
     },
   });
 }

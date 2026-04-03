@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb, saveDb } from '@/shared/api/local-db';
+import { getDb, saveDb, withLock } from '@/shared/api/local-db';
 
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,13 +10,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const db = await getDb(projectId);
-    
-    // Filter out tasks with 'DONE' status
-    db.tasks = db.tasks.filter(t => t.status !== 'DONE');
-    
-    await saveDb(projectId, db);
-    return NextResponse.json({ success: true });
+    return await withLock(projectId, async () => {
+      const db = await getDb(projectId);
+
+      db.tasks = db.tasks.filter(t => t.status !== 'DONE');
+
+      await saveDb(projectId, db);
+      return NextResponse.json({ success: true });
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to clear tasks' }, { status: 500 });
   }

@@ -1,10 +1,6 @@
 ---
 name: code-reviewer
 description: 'Elite code review expert specializing in modern AI-powered code'
-risk: unknown
-source: community
-date_added: '2026-02-27'
-tag: FE, BE
 ---
 
 ## Use this skill when

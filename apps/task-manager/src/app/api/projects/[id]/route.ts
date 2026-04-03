@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getProjectsList, saveProjectsList, deleteProjectDb } from '@/shared/api/local-db';
+import { getProjectsList, saveProjectsList, archiveProjectDb } from '@/shared/api/local-db';
 
 export async function DELETE(
   request: Request,
@@ -19,8 +19,8 @@ export async function DELETE(
     }
 
     await saveProjectsList(updatedProjects);
-    // Also delete the project's task/agent data file
-    await deleteProjectDb(projectId);
+    // Archive the project's task/agent data file to projects-delete/ instead of permanently deleting
+    await archiveProjectDb(projectId);
 
     return NextResponse.json({ success: true, deletedId: projectId });
   } catch (error) {

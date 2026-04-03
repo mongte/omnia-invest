@@ -2,10 +2,37 @@ import fs from 'fs/promises';
 import path from 'path';
 import { Task } from '@/entities/task/model/types';
 import { Agent } from '@/entities/agent/model/types';
+import { notifyDbChange } from './event-bus';
+
+// --- In-process async mutex per project ---
+const locks = new Map<string, Promise<void>>();
+
+export async function withLock<T>(
+  projectId: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  const prev = locks.get(projectId) ?? Promise.resolve();
+  let resolve: () => void;
+  const next = new Promise<void>((r) => {
+    resolve = r;
+  });
+  locks.set(projectId, next);
+
+  await prev;
+  try {
+    return await fn();
+  } finally {
+    resolve!();
+    if (locks.get(projectId) === next) {
+      locks.delete(projectId);
+    }
+  }
+}
 
 const DB_DIR = path.join(process.cwd(), 'data');
 const PROJECTS_FILE = path.join(DB_DIR, 'projects.json');
 const PROJECTS_DATA_DIR = path.join(DB_DIR, 'projects');
+const PROJECTS_DELETE_DIR = path.join(DB_DIR, 'projects-delete');
 
 export interface Project {
   id: string;
@@ -49,18 +76,37 @@ export const getDb = async (projectId: string): Promise<DbSchema> => {
 export const saveDb = async (projectId: string, data: DbSchema): Promise<void> => {
   try {
     await fs.mkdir(PROJECTS_DATA_DIR, { recursive: true });
-    await fs.writeFile(getProjectDbFile(projectId), JSON.stringify(data, null, 2), 'utf-8');
+    const targetFile = getProjectDbFile(projectId);
+    const tmpFile = `${targetFile}.tmp`;
+    await fs.writeFile(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
+    await fs.rename(tmpFile, targetFile);
+    notifyDbChange(projectId);
   } catch (error) {
     console.error('Failed to write project DB:', error);
   }
 };
 
-export const deleteProjectDb = async (projectId: string): Promise<void> => {
+export const archiveProjectDb = async (projectId: string): Promise<void> => {
   try {
-    const file = getProjectDbFile(projectId);
-    await fs.unlink(file).catch(() => {}); // ignore if not exists
+    await fs.mkdir(PROJECTS_DELETE_DIR, { recursive: true });
+    const srcFile = getProjectDbFile(projectId);
+    const destFile = path.join(PROJECTS_DELETE_DIR, `${projectId}.json`);
+    try {
+      await fs.rename(srcFile, destFile);
+    } catch (renameErr) {
+      // fs.rename fails across different filesystems; fall back to copy + delete
+      const nodeErr = renameErr as NodeJS.ErrnoException;
+      if (nodeErr.code === 'EXDEV') {
+        const content = await fs.readFile(srcFile, 'utf-8');
+        await fs.writeFile(destFile, content, 'utf-8');
+        await fs.unlink(srcFile);
+      } else if (nodeErr.code !== 'ENOENT') {
+        throw renameErr;
+      }
+      // ENOENT means the source file didn't exist — silently ignore
+    }
   } catch (error) {
-    console.error('Failed to delete project DB file:', error);
+    console.error('Failed to archive project DB file:', error);
   }
 };
 

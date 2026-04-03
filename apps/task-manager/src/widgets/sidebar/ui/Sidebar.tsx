@@ -1,7 +1,8 @@
 "use client";
 
 import Link from 'next/link';
-import { LayoutDashboard, FolderKanban, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { LayoutDashboard, FolderKanban, Trash2, AlertCircle, X } from 'lucide-react';
 import { useProjectStore } from '@/entities/project/model/store';
 import { useEffect, Component, ReactNode } from 'react';
 
@@ -18,7 +19,13 @@ class ProjectErrorBoundary extends Component<{children: ReactNode, fallback: Rea
   }
 }
 
-const ProjectItem = ({ p, isSelected, deleteProject }: { p: any, isSelected: boolean, deleteProject: (id: string) => void }) => {
+interface ProjectItemProps {
+  p: { id: string; title: string; color: string; icon?: string };
+  isSelected: boolean;
+  onDelete: (id: string) => void;
+}
+
+const ProjectItem = ({ p, isSelected, onDelete }: ProjectItemProps) => {
   // Purposefully throw if the project format is totally broken, so ErrorBoundary catches it
   if (!p || typeof p !== 'object' || !p.id || !p.title) {
     throw new Error("Invalid project data");
@@ -42,9 +49,11 @@ const ProjectItem = ({ p, isSelected, deleteProject }: { p: any, isSelected: boo
         <span className="truncate">{p.title}</span>
       </div>
       <button
+        aria-label={`Delete project ${p.title}`}
         onClick={(e) => {
+          e.preventDefault();
           e.stopPropagation();
-          deleteProject(p.id);
+          onDelete(p.id);
         }}
         className="opacity-0 group-hover:opacity-100 hover:text-red-400 p-1 text-slate-500 transition-all focus:outline-none"
       >
@@ -66,12 +75,24 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 export const Sidebar = () => {
-  const { projects, selectedProjectId, isLoading, fetchProjects, deleteProject, selectProject } =
+  const router = useRouter();
+  const { projects, selectedProjectId, isLoading, error, fetchProjects, deleteProject, clearError } =
     useProjectStore();
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
+
+  const handleDeleteProject = (id: string) => {
+    deleteProject(id, (newSelectedId) => {
+      // After successful deletion, navigate to the new selected project or home
+      if (newSelectedId) {
+        router.push(`/projects/${newSelectedId}`);
+      } else {
+        router.push('/');
+      }
+    });
+  };
 
   return (
     <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen shrink-0 border-r border-slate-800">
@@ -103,6 +124,24 @@ export const Sidebar = () => {
             </div>
           </div>
 
+          {/* Error feedback banner */}
+          {error && (
+            <div
+              role="alert"
+              className="mx-1 mb-2 flex items-start gap-2 rounded-md bg-red-900/40 border border-red-800/60 px-3 py-2 text-xs text-red-300"
+            >
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <span className="flex-1">{error}</span>
+              <button
+                aria-label="Dismiss error"
+                onClick={clearError}
+                className="shrink-0 hover:text-red-200 transition-colors focus:outline-none"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
           <div className="pl-4 space-y-1">
             {isLoading ? (
               <div className="px-3 py-2 text-xs text-slate-500">Loading...</div>
@@ -118,14 +157,15 @@ export const Sidebar = () => {
                     fallback={
                       <div className="px-3 py-2 text-sm text-red-300 bg-red-900/30 rounded-md border border-red-800/50 flex items-center justify-between">
                         <span className="truncate">Corrupted Project Data</span>
-                        <Trash2 
-                          className="w-3.5 h-3.5 text-red-400 cursor-pointer hover:text-red-300" 
-                          onClick={() => { if(p?.id) deleteProject(p.id); }} 
+                        <Trash2
+                          aria-label="Delete corrupted project"
+                          className="w-3.5 h-3.5 text-red-400 cursor-pointer hover:text-red-300"
+                          onClick={() => { if (p?.id) handleDeleteProject(p.id); }}
                         />
                       </div>
                     }
                   >
-                    <ProjectItem p={p} isSelected={isSelected} deleteProject={deleteProject} />
+                    <ProjectItem p={p} isSelected={isSelected} onDelete={handleDeleteProject} />
                   </ProjectErrorBoundary>
                 );
               })

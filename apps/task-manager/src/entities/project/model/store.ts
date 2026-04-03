@@ -18,8 +18,9 @@ export interface ProjectState {
 export interface ProjectActions {
   fetchProjects: () => Promise<void>;
   createProject: (data: Omit<Project, 'id'>) => Promise<void>;
-  deleteProject: (id: string) => Promise<void>;
+  deleteProject: (id: string, onSuccess?: (newSelectedId: string | null) => void) => Promise<void>;
   selectProject: (id: string) => void;
+  clearError: () => void;
 }
 
 export type ProjectStore = ProjectState & ProjectActions;
@@ -38,14 +39,12 @@ export const useProjectStore = create<ProjectStore>()(
         if (!res.ok) throw new Error('Failed to fetch projects');
         const projects = await res.json();
         const list: Project[] = Array.isArray(projects) ? projects : [];
-        // Auto-select first project if none selected
-        const currentId = get().selectedProjectId;
-        const selectedId = list.find(p => p && p.id === currentId)
-          ? currentId
-          : null;
-        set({ projects: list, isLoading: false, selectedProjectId: selectedId });
-      } catch (err: any) {
-        set({ error: err.message, isLoading: false });
+        // selectedProjectId는 ProjectRouteSync(URL 기반)가 관리하므로 여기서 덮어쓰지 않음
+        // projects 목록만 업데이트하고 선택 상태는 건드리지 않는다
+        set({ projects: list, isLoading: false });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message, isLoading: false });
       }
     },
 
@@ -57,35 +56,47 @@ export const useProjectStore = create<ProjectStore>()(
           body: JSON.stringify(data),
         });
         if (!res.ok) throw new Error('Failed to create project');
-        const newProject = await res.json();
+        const newProject = await res.json() as Project;
         set({ projects: [...get().projects, newProject] });
-      } catch (err: any) {
-        set({ error: err.message });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message });
       }
     },
 
-    deleteProject: async (id) => {
-      try {
-        const previousProjects = get().projects;
-        const remainingProjects = previousProjects.filter(p => p.id !== id);
-        // If deleting the selected project, select another
-        const currentSelected = get().selectedProjectId;
-        const newSelected =
-          currentSelected === id ? (remainingProjects[0]?.id ?? null) : currentSelected;
-        set({ projects: remainingProjects, selectedProjectId: newSelected });
+    deleteProject: async (id, onSuccess) => {
+      const previousProjects = get().projects;
+      const remainingProjects = previousProjects.filter(p => p.id !== id);
+      // If deleting the selected project, auto-select the first remaining project
+      const currentSelected = get().selectedProjectId;
+      const newSelected =
+        currentSelected === id ? (remainingProjects[0]?.id ?? null) : currentSelected;
 
+      // Optimistic update: immediately reflect deletion in UI
+      set({ projects: remainingProjects, selectedProjectId: newSelected, error: null });
+
+      try {
         const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
         if (!res.ok) {
-          set({ projects: previousProjects });
-          throw new Error('Failed to delete project');
+          // Rollback on failure
+          set({ projects: previousProjects, selectedProjectId: currentSelected });
+          const body = await res.json().catch(() => ({})) as { error?: string };
+          throw new Error(body.error ?? 'Failed to delete project');
         }
-      } catch (err: any) {
-        set({ error: err.message });
+        // Notify caller so UI layer can handle routing (e.g. router.push)
+        onSuccess?.(newSelected);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message });
       }
     },
 
     selectProject: (id) => {
       set({ selectedProjectId: id });
+    },
+
+    clearError: () => {
+      set({ error: null });
     },
   }))
 );

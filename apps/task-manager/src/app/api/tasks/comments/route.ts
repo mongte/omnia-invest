@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb, saveDb } from '@/shared/api/local-db';
+import { getDb, saveDb, withLock } from '@/shared/api/local-db';
 import { TaskComment } from '@/entities/task';
 
 export async function POST(request: Request) {
@@ -17,29 +17,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'taskId, agentId, and content are required' }, { status: 400 });
     }
 
-    const db = await getDb(projectId);
-    const index = db.tasks.findIndex(t => t.id === taskId);
-    
-    if (index === -1) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
-    }
+    return await withLock(projectId, async () => {
+      const db = await getDb(projectId);
+      const index = db.tasks.findIndex(t => t.id === taskId);
 
-    const newComment: TaskComment = {
-      id: `comment-${Date.now()}`,
-      agentId,
-      content,
-      createdAt: new Date().toISOString()
-    };
+      if (index === -1) {
+        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      }
 
-    if (!db.tasks[index].comments) {
-      db.tasks[index].comments = [];
-    }
-    
-    db.tasks[index].comments.push(newComment);
-    db.tasks[index].updatedAt = new Date().toISOString();
+      const newComment: TaskComment = {
+        id: `comment-${Date.now()}`,
+        agentId,
+        content,
+        createdAt: new Date().toISOString()
+      };
 
-    await saveDb(projectId, db);
-    return NextResponse.json(newComment);
+      if (!db.tasks[index].comments) {
+        db.tasks[index].comments = [];
+      }
+
+      db.tasks[index].comments.push(newComment);
+      db.tasks[index].updatedAt = new Date().toISOString();
+
+      await saveDb(projectId, db);
+      return NextResponse.json(newComment);
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to add comment' }, { status: 500 });
   }

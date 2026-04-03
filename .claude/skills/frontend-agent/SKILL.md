@@ -1,7 +1,6 @@
 ---
 name: frontend-agent
 description: Frontend specialist for React, Next.js, TypeScript with FSD-lite architecture, shadcn/ui, and design system alignment
-tag: FE
 ---
 
 # Frontend Agent - UI/UX Specialist

@@ -8,6 +8,7 @@ import { TaskCard } from '@/features/task-management';
 
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { Task, TaskStatus } from '@/entities/task/model/types';
+import { Loader2 } from 'lucide-react';
 
 const STYLES = {
   'TODO': { label: 'TODO', bgClass: 'bg-[#0ea5e9]' },
@@ -38,26 +39,28 @@ export const TaskKanbanBoard = () => {
   const columns: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
 
   const tasks = useTaskStore(state => state.tasks);
+  const isLoading = useTaskStore(state => state.isLoading);
   const fetchTasks = useTaskStore(state => state.fetchTasks);
   const fetchAgents = useAgentStore(state => state.fetchAgents);
   const selectedProjectId = useProjectStore(state => state.selectedProjectId);
 
+  // SSE 구독: selectedProjectId가 바뀔 때마다 이전 연결 정리 후 새 projectId로 재구독
+  // 데이터 최초 fetch는 ProjectRouteSync에서 담당하므로 여기서는 SSE 실시간 업데이트만 처리
   useEffect(() => {
     if (!selectedProjectId) return;
 
-    // Load tasks and agents for the selected project
-    fetchTasks(selectedProjectId);
-    fetchAgents(selectedProjectId);
-
-    // Subscribe to real-time updates for this project
     const eventSource = new EventSource(`/api/stream?projectId=${selectedProjectId}`);
 
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = (event: MessageEvent<string>) => {
       if (event.data === 'update') {
-        // Use silent=true to prevent UI flickering on updates
+        // silent=true로 UI 깜빡임 없이 갱신
         fetchTasks(selectedProjectId, true);
         fetchAgents(selectedProjectId, true);
       }
+    };
+
+    eventSource.onerror = () => {
+      // EventSource는 onerror 후 자동 재연결함. close() 호출하면 재연결 차단되므로 호출하지 않음.
     };
 
     return () => {
@@ -70,6 +73,15 @@ export const TaskKanbanBoard = () => {
       <div className="flex flex-col items-center justify-center h-96 text-slate-400">
         <p className="text-lg font-medium">프로젝트를 선택해주세요</p>
         <p className="text-sm mt-1">사이드바에서 프로젝트를 클릭하면 해당 칸반보드가 열립니다.</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin mb-3 text-slate-500" />
+        <p className="text-sm font-medium">프로젝트 데이터 로드 중...</p>
       </div>
     );
   }

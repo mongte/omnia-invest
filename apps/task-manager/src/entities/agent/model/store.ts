@@ -33,10 +33,12 @@ export const useAgentStore = create<AgentStore>()(
       try {
         const res = await fetch(`/api/agents?projectId=${projectId}`);
         if (!res.ok) throw new Error('Failed to fetch agents');
-        const agents = await res.json();
-        set({ agents: agents || [], isLoading: false });
-      } catch (err: any) {
-        set({ error: err.message, isLoading: false });
+        const data: unknown = await res.json();
+        const agents = Array.isArray(data) ? data : [];
+        set({ agents, isLoading: false });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message, isLoading: false });
       }
     },
 
@@ -59,8 +61,9 @@ export const useAgentStore = create<AgentStore>()(
           await get().fetchAgents(projectId);
           throw new Error('Failed to update agent');
         }
-      } catch (err: any) {
-        set({ error: err.message });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message });
       }
     },
   }))

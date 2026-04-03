@@ -35,10 +35,12 @@ export const useTaskStore = create<TaskStore>()(
       try {
         const res = await fetch(`/api/tasks?projectId=${projectId}`);
         if (!res.ok) throw new Error('Failed to fetch tasks');
-        const tasks = await res.json();
-        set({ tasks: tasks || [], isLoading: false });
-      } catch (err: any) {
-        set({ error: err.message, isLoading: false });
+        const data: unknown = await res.json();
+        const tasks = Array.isArray(data) ? data : [];
+        set({ tasks, isLoading: false });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message, isLoading: false });
       }
     },
 
@@ -60,8 +62,9 @@ export const useTaskStore = create<TaskStore>()(
 
         const createdTask = await res.json();
         set({ tasks: [...get().tasks, createdTask] });
-      } catch (err: any) {
-        set({ error: err.message });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message });
       }
     },
 
@@ -85,8 +88,9 @@ export const useTaskStore = create<TaskStore>()(
           await get().fetchTasks(projectId);
           throw new Error('Failed to update task');
         }
-      } catch (err: any) {
-        set({ error: err.message });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message });
       }
     },
 
@@ -105,8 +109,9 @@ export const useTaskStore = create<TaskStore>()(
           await get().fetchTasks(projectId);
           throw new Error('Failed to clear completed tasks');
         }
-      } catch (err: any) {
-        set({ error: err.message });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        set({ error: message });
       }
     },
   }))

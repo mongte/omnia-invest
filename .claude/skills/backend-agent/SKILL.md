@@ -1,7 +1,6 @@
 ---
 name: backend-agent
 description: Backend specialist for APIs, databases, authentication using FastAPI with clean architecture (Repository/Service/Router pattern)
-tag: BE
 ---
 
 # Backend Agent - API & Server Specialist
