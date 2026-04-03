@@ -31,5 +31,11 @@
     "deny": [
       "Bash(git push *)"
     ]
+  },
+  "mcpServers": {
+    "qmd": {
+      "command": "qmd",
+      "args": ["mcp"]
+    }
   }
 }
