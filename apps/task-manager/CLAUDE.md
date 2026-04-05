@@ -2,6 +2,12 @@
 
 AI Agent 태스크 관리 대시보드.
 
+## 기본 정보
+- 프로젝트: next.js 16 + typescript 
+- 스타일: 함수형 컴퍼넌트, FSD구조, Tailwind CSS
+- 테스트: 
+
+
 ## Commands
 
 ```bash

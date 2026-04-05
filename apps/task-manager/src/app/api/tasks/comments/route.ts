@@ -2,19 +2,32 @@ import { NextResponse } from 'next/server';
 import { getDb, saveDb, withLock } from '@/shared/api/local-db';
 import { TaskComment } from '@/entities/task';
 
+interface CommentRequestBody {
+  agentId: string;
+  content: string;
+}
+
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
-  
+  const taskId = searchParams.get('taskId');
+
   if (!projectId) {
     return NextResponse.json({ error: 'projectId is required' }, { status: 400 });
   }
+  if (!taskId) {
+    return NextResponse.json({ error: 'taskId is required' }, { status: 400 });
+  }
 
   try {
-    const { taskId, agentId, content } = await request.json();
-    
-    if (!taskId || !agentId || !content) {
-      return NextResponse.json({ error: 'taskId, agentId, and content are required' }, { status: 400 });
+    const body: CommentRequestBody = await request.json();
+    const { agentId, content } = body;
+
+    if (!agentId) {
+      return NextResponse.json({ error: 'agentId is required' }, { status: 400 });
+    }
+    if (content === '' || !content) {
+      return NextResponse.json({ error: 'content must not be empty' }, { status: 400 });
     }
 
     return await withLock(projectId, async () => {
@@ -29,7 +42,7 @@ export async function POST(request: Request) {
         id: `comment-${Date.now()}`,
         agentId,
         content,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
       if (!db.tasks[index].comments) {
@@ -40,7 +53,7 @@ export async function POST(request: Request) {
       db.tasks[index].updatedAt = new Date().toISOString();
 
       await saveDb(projectId, db);
-      return NextResponse.json(newComment);
+      return NextResponse.json(newComment, { status: 201 });
     });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to add comment' }, { status: 500 });

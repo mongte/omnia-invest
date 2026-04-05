@@ -27,11 +27,29 @@ format_json() {
   fi
 }
 
-# JSON-safe POST 요청
+# JSON-safe POST 요청 (HTTP 에러 및 연결 실패 감지)
 post_json() {
   local url="$1"
   local data="$2"
-  curl -s -X POST "$url" -H "Content-Type: application/json" -d "$data" | format_json
+  local raw
+  local http_code
+
+  if ! raw=$(curl -s -w "\n%{http_code}" -X POST "$url" \
+    -H "Content-Type: application/json" -d "$data" --max-time 10); then
+    echo "ERROR: 서버 연결 실패 ($url)" >&2
+    return 1
+  fi
+
+  http_code=$(echo "$raw" | tail -1)
+  raw=$(echo "$raw" | sed '$d')
+
+  if [[ -z "$http_code" || "$http_code" == "000" || "$http_code" -ge 400 ]]; then
+    echo "ERROR: HTTP ${http_code:-000} from $url" >&2
+    echo "$raw" | format_json >&2
+    return 1
+  fi
+
+  echo "$raw" | format_json
 }
 
 usage() {

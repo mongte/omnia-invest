@@ -6,6 +6,9 @@
     "dev:task-manager": "nx run task-manager:dev",
     "build:task-manager": "nx run task-manager:build",
     "lint:task-manager": "nx run task-manager:lint",
+    "dev:pharos-lab": "nx run pharos-lab:dev",
+    "build:pharos-lab": "nx run pharos-lab:build",
+    "lint:pharos-lab": "nx run pharos-lab:lint",
     "db:archive": "npx tsx apps/task-manager/src/scripts/archive-db.ts",
     "db:load": "npx tsx apps/task-manager/src/scripts/load-db.ts"
   },

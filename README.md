@@ -1,97 +1,91 @@
-# OmniaInvest
+# Omnia Invest
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+AI 에이전트 기반 퀀트 투자 분석 플랫폼. Nx 모노레포로 구성되어 있습니다.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Apps
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+| 앱 | 설명 | 포트 |
+|----|------|------|
+| [pharos-lab](apps/pharos-lab/) | 퀀트 투자 분석 대시보드 — 종목 점수, 캔들차트, 공시, 가상투자 | 3000 |
+| [task-manager](apps/task-manager/) | AI Agent 칸반 태스크 관리 대시보드 | 4200 |
 
-## Run tasks
+## AI 에이전트
 
-To run tasks with Nx use:
+`.claude/agents/`에 정의된 전문 에이전트 팀:
 
-```sh
-npx nx <target> <project-name>
+| 에이전트 | 역할 |
+|----------|------|
+| pm | 요구사항 분석 → 칸반 태스크 생성 |
+| backend | [BE] 태스크 픽업 → API/DB 구현 |
+| frontend | [FE] 태스크 픽업 → UI 구현 |
+| qa | E2E 테스트 �� 통과/반려 |
+| database | Supabase DB 관리, 데이터 파이프라인 |
+| strategy | 전략 리서치, 스킬 생성, 스키마 설계 |
+
+## 데이터 파이프라인
+
+코스피 Top50 종목 데이터를 자동 수집하여 Supabase에 적재합니다.
+
+```
+[로컬 PC — launchd]              [Supabase — pg_cron]
+ 키움증권 API                      OpenDART API
+ 07:50 pre-market                 08:00 공시 수집
+ 16:30 post-market                매월 15일 재무제표
+                                  매주 일요일 정리
+       │                                │
+       └──────────┬─────────���───────────┘
+                  ▼
+         Supabase PostgreSQL
+         trading 스키마 → public 스��마
 ```
 
-For example:
+상세: `.claude/skills/trading-data-pipeline/README.md`
 
-```sh
-npx nx build myproject
+## 기술 스택
+
+| 레이어 | 기술 |
+|--------|------|
+| 모노레포 | Nx |
+| 프레임워크 | Next.js 16 (App Router) + React 19 |
+| 언어 | TypeScript strict |
+| 스타일 | Tailwind CSS + shadcn/ui |
+| DB | Supabase (PostgreSQL) |
+| 차트 | lightweight-charts, Recharts |
+| 테스트 | Playwright (E2E) |
+| ���이터 수집 | Python (키움 REST API, OpenDART API) |
+
+## 시작하기
+
+```bash
+# 의존성 설치
+npm install
+
+# pharos-lab 개발 서버
+npm run dev --prefix apps/pharos-lab
+
+# task-manager 개발 서버
+npm run dev:task-manager
+
+# 타입 체크
+npx tsc --noEmit
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## 프로젝트 구조
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Add new projects
-
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
 ```
-
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
-
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
-
-# Generate a library
-npx nx g @nx/react:lib some-lib
+omnia-invest/
+├── apps/
+│   ├── pharos-lab/              # 퀀트 투자 분석 플랫폼
+│   ���── task-manager/            # AI 칸반 태스크 관리
+├── scripts/                     # 데이터 수집 스크립트
+│   ├── daily_sync_kiwoom.py     # 키움 일일 수집 (launchd)
+│   ├── collect_ohlcv_daily.py   # OHLCV 1년치 백필
+│   └── launchd/                 # macOS 스케줄러 plist
+└── .claude/
+    ├── agents/                  # AI 에이전트 정의 (6개)
+    └── skills/                  # 에���전트 스킬 (20+)
+        ├── trading-data-pipeline/   # ETL 파이프라인 스킬
+        ├── kiwoom-api/              # 키움증권 API 참조
+        ├── opendart-api/            # OpenDART API 참조
+        └── ...
 ```
-
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
-
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/getting-started/intro#learn-nx?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-# omnia-invest-task-manater

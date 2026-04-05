@@ -19,33 +19,48 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'projectId is required' }, { status: 400 });
   }
   try {
-    const task: Task = await request.json();
+    const body: Partial<Task> & { assigneeId?: string | null } = await request.json();
     return await withLock(projectId, async () => {
       const db = await getDb(projectId);
 
       // ID가 없거나 null/undefined인 경우 자동 생성
-      if (!task.id) {
-        task.id = `task-${Date.now()}`;
+      if (!body.id) {
+        body.id = `task-${Date.now()}`;
       }
 
-      const index = db.tasks.findIndex(t => t.id === task.id);
+      const index = db.tasks.findIndex(t => t.id === body.id);
       if (index >= 0) {
         const existingTask = db.tasks[index];
-        db.tasks[index] = {
+        // assigneeId: null은 Unassigned(undefined)로 정규화
+        const assigneeId =
+          body.assigneeId === null || body.assigneeId === ''
+            ? undefined
+            : body.assigneeId;
+        const merged: Task = {
           ...existingTask,
-          ...task,
+          ...body,
+          assigneeId,
           updatedAt: new Date().toISOString(),
         };
+        db.tasks[index] = merged;
       } else {
-        db.tasks.push({
-          ...task,
-          comments: task.comments || [],
+        const task: Task = {
+          id: body.id,
+          title: body.title ?? '',
+          description: body.description ?? '',
+          status: body.status ?? 'TODO',
+          assigneeId:
+            body.assigneeId === null || body.assigneeId === ''
+              ? undefined
+              : body.assigneeId,
+          comments: body.comments ?? [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        });
+        };
+        db.tasks.push(task);
       }
 
-      const savedTask = db.tasks.find(t => t.id === task.id)!;
+      const savedTask = db.tasks.find(t => t.id === body.id)!;
       await saveDb(projectId, db);
       return NextResponse.json(savedTask);
     });

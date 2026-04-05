@@ -130,6 +130,115 @@
       "createdAt": "2026-04-02T18:00:01.000Z",
       "updatedAt": "2026-04-03T13:46:42.196Z",
       "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-dnd-fe-17753665023N",
+      "title": "[FE] 칸반 보드 드래그앤드롭으로 태스크 섹션 이동 구현",
+      "description": "**목표**:\n사용자가 칸반 보드에서 태스크 카드를 마우스 드래그로 다른 섹션(TODO, IN_PROGRESS, IN_REVIEW, DONE)으로 이동할 수 있는 기능을 구현합니다. 이동 시 해당 태스크의 status가 자동으로 업데이트됩니다.\n\n**요구사항**:\n1. @hello-pangea/dnd (react-beautiful-dnd 후속) 또는 @dnd-kit/core 라이브러리를 설치하여 드래그앤드롭을 구현할 것 (프로젝트에 적합한 라이브러리 선택)\n2. widgets/board/ui/TaskKanbanBoard.tsx에 DragDropContext, Droppable 영역을 각 칸반 컬럼(TODO, IN_PROGRESS, IN_REVIEW, DONE)에 적용할 것\n3. features/task-management/ui/TaskCard.tsx에 Draggable 속성을 적용하여 카드가 드래그 가능하도록 할 것\n4. 드래그 완료(onDragEnd) 시 해당 태스크의 status를 드롭된 컬럼의 status로 변경하고, useTaskStore의 updateTaskStatus 액션을 호출하여 서버에 반영할 것\n5. 드래그 중 시각적 피드백을 제공할 것 (카드 그림자, 드롭 영역 하이라이트 등)\n6. 같은 컬럼 내에서의 드래그는 순서 변경 없이 무시할 것 (status 변경만 처리)\n7. 드래그 중에도 기존 @formkit/auto-animate 애니메이션과 충돌하지 않도록 처리할 것 (필요 시 auto-animate 비활성화 또는 조건부 적용)\n8. 모바일 터치 드래그도 지원할 것 (선택한 라이브러리의 터치 지원 활용)\n\n**기술 참고**:\n- 현재 TaskKanbanBoard에서 columns 배열로 4개 status를 순회하며 KanbanColumn을 렌더링함\n- updateTaskStatus(taskId, status, projectId)는 Optimistic update + POST /api/tasks로 서버 반영 (이미 구현됨)\n- @formkit/auto-animate가 KanbanColumn의 div에 적용되어 있으므로 드래그앤드롭 라이브러리와의 호환성 확인 필요\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/widgets/board/ui/TaskKanbanBoard.tsx (DragDropContext, Droppable 적용)\n- apps/task-manager/src/features/task-management/ui/TaskCard.tsx (Draggable 적용)\n- package.json (드래그앤드롭 라이브러리 의존성 추가)\n\n**수락 기준**:\n- 태스크 카드를 마우스로 드래그하여 다른 컬럼으로 이동 가능\n- 드롭 시 태스크의 status가 해당 컬럼의 status로 변경됨 (예: TODO에서 IN_PROGRESS로 이동 시 status가 IN_PROGRESS로 변경)\n- 서버에 status 변경이 반영됨 (페이지 새로고침 후에도 변경된 status 유지)\n- 드래그 중 시각적 피드백이 표시됨 (드래그 중인 카드 스타일 변화, 드롭 가능 영역 표시)\n- 같은 컬럼 내 드래그 시 불필요한 API 호출이 발생하지 않음\n- 기존 카드 클릭 상세 다이얼로그 기능과 충돌하지 않음 (짧은 클릭 = 상세 열기, 길게 누르고 드래그 = 이동)\n- TypeScript strict mode 타입 오류 없음\n- Tailwind CSS만 사용",
+      "status": "IN_REVIEW",
+      "createdAt": "2026-04-05T05:21:42.464Z",
+      "updatedAt": "2026-04-05T06:14:50.992Z",
+      "comments": [
+        {
+          "id": "comment-1775368887516",
+          "agentId": "agent-fe-1",
+          "content": "[작업 시작] IN_PROGRESS 전환. 구현 계획: @hello-pangea/dnd 설치 후 TaskKanbanBoard에 DragDropContext + Droppable 적용, TaskCard에 Draggable 적용. @formkit/auto-animate와 충돌 방지를 위해 드래그 중 isAnimated 플래그로 조건부 비활성화. onDragEnd에서 컬럼 변경 시에만 updateTaskStatus 호출하여 불필요한 API 호출 방지.",
+          "createdAt": "2026-04-05T06:01:27.516Z"
+        }
+      ],
+      "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-assign-be-1775366520001",
+      "title": "[BE] 태스크 assigneeId 변경 API 지원 확인 및 에이전트 목록 조회 보장",
+      "description": "**목표**:\n사용자가 FE에서 태스크의 assigneeId를 셀렉트 박스로 변경할 때 필요한 BE 지원을 확인하고, 에이전트 목록 조회가 안정적으로 동작하는지 보장합니다.\n\n**요구사항**:\n1. POST /api/tasks의 upsert 로직에서 assigneeId 필드가 정상적으로 업데이트되는지 확인할 것 (현재 코드에서 spread 연산자로 모든 필드가 병합되므로 이미 동작할 가능성이 높으나, 명시적으로 검증)\n2. GET /api/agents?projectId=<ID>가 해당 프로젝트의 전체 에이전트 목록을 정상 반환하는지 확인할 것\n3. assigneeId에 빈 문자열이나 null이 전달된 경우의 처리 방식을 명확히 할 것 (Unassigned 상태 허용)\n4. assigneeId 변경 시 updatedAt 타임스탬프가 자동 갱신되는지 확인할 것\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/app/api/tasks/route.ts (POST 핸들러의 assigneeId 처리 검증)\n- apps/task-manager/src/app/api/agents/route.ts (GET 핸들러 동작 검증)\n\n**수락 기준**:\n- POST /api/tasks에 { id, assigneeId, status } 전송 시 assigneeId가 정상적으로 업데이트됨\n- POST /api/tasks에 { id, assigneeId: '' } 전송 시 assigneeId가 빈 문자열 또는 undefined로 저장됨 (Unassigned)\n- GET /api/agents?projectId=<ID> 호출 시 해당 프로젝트의 에이전트 배열이 반환됨\n- updatedAt이 assigneeId 변경 시 자동 갱신됨\n- TypeScript strict mode 타입 오류 없음",
+      "status": "IN_REVIEW",
+      "createdAt": "2026-04-05T05:22:00.543Z",
+      "updatedAt": "2026-04-05T06:03:56.043Z",
+      "comments": [
+        {
+          "id": "comment-1775368908014",
+          "agentId": "agent-be-1",
+          "content": "[작업 시작] IN_PROGRESS 전환. 구현 계획: POST /api/tasks의 assigneeId 처리 검증 및 보강, GET /api/agents 동작 확인. null 케이스를 undefined로 정규화하는 처리 추가.",
+          "createdAt": "2026-04-05T06:01:48.014Z"
+        },
+        {
+          "id": "comment-1775369035987",
+          "agentId": "agent-be-1",
+          "content": "[작업 완료] 변경 파일: apps/task-manager/src/app/api/tasks/route.ts. 수락 기준 달성: (1) assigneeId 필드 spread merge로 정상 업데이트됨 (2) assigneeId null/빈문자열 -> undefined 정규화 추가로 Unassigned 처리 명확화 (3) GET /api/agents 기존 코드 정상 동작 확인 (4) updatedAt 항상 갱신됨 (5) BE 파일 TypeScript 오류 없음. 자기 검토 완료. QA 검증 요청.",
+          "createdAt": "2026-04-05T06:03:55.992Z"
+        }
+      ]
+    },
+    {
+      "id": "task-assign-fe-1775366545002",
+      "title": "[FE] 태스크 Assignee 셀렉트 박스 변경 기능 구현",
+      "description": "**목표**:\n태스크 상세 다이얼로그에서 Assignee 영역을 셀렉트 박스로 변경하여, 사용자가 드롭다운에서 에이전트를 선택하여 태스크 담당자를 변경할 수 있는 기능을 구현합니다.\n\n**요구사항**:\n1. features/task-management/ui/TaskCard.tsx의 상세 다이얼로그(DialogContent) 내 Assignee 표시 영역을 shadcn/ui Select 컴포넌트로 교체할 것\n2. Select 옵션 목록은 useAgentStore의 agents 배열에서 가져올 것 (id, name 표시)\n3. 'Unassigned' 옵션을 목록 상단에 추가하여 담당자를 해제할 수 있도록 할 것\n4. 선택 변경 시 태스크의 assigneeId를 업데이트하는 스토어 액션을 호출할 것\n5. entities/task/model/store.ts에 updateTaskAssignee(taskId: string, assigneeId: string | undefined, projectId: string): Promise<void> 액션을 추가할 것 (Optimistic update + POST /api/tasks로 서버 반영)\n6. 변경 요청 시 POST body에 id, assigneeId, status만 전송할 것 (title, description 덮어쓰기 방지 규칙 준수)\n7. 카드 썸네일(미니 카드)에서도 현재 assignee를 Avatar와 이름으로 표시하되, 변경은 상세 다이얼로그에서만 가능\n8. Select 컴포넌트가 없다면 npx shadcn@latest add select로 설치할 것\n\n**기술 참고**:\n- 현재 TaskCard에서 agents 스토어를 이미 사용하여 assignee 정보를 표시하고 있음 (useAgentStore)\n- POST /api/tasks는 upsert 방식으로 동작하며, assigneeId 포함 시 해당 필드만 업데이트됨\n- title/description을 POST body에 포함하면 덮어쓰기 위험이 있으므로, 반드시 제외할 것\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/features/task-management/ui/TaskCard.tsx (Select UI 구현)\n- apps/task-manager/src/entities/task/model/store.ts (updateTaskAssignee 액션 추가)\n- apps/task-manager/src/shared/ui/select.tsx (shadcn/ui Select 컴포넌트 - 필요 시 설치)\n\n**의존성**:\n- [BE] 태스크 assigneeId 변경 API 지원 확인 (task-assign-be) 완료 후 연동 가능. 단, FE UI 구현은 선행 가능.\n\n**수락 기준**:\n- 태스크 상세 다이얼로그에서 Assignee 영역이 셀렉트 박스로 표시됨\n- 셀렉트 박스에 현재 프로젝트의 에이전트 목록이 표시됨\n- 'Unassigned' 옵션이 목록에 포함됨\n- 에이전트 선택 시 태스크의 assigneeId가 즉시 변경됨 (Optimistic update)\n- 서버에 assigneeId 변경이 반영됨 (페이지 새로고침 후에도 변경 유지)\n- title/description이 변경되지 않음 (API 호출 시 해당 필드 미포함 확인)\n- TypeScript strict mode 타입 오류 없음\n- Tailwind CSS만 사용",
+      "status": "IN_REVIEW",
+      "createdAt": "2026-04-05T05:22:25.860Z",
+      "updatedAt": "2026-04-05T06:10:23.758Z",
+      "comments": []
+    },
+    {
+      "id": "task-actlog-be-1775366586003",
+      "title": "[BE] Activity Log(댓글) 작성 API 및 작성자 선택 지원",
+      "description": "**목표**:\n사용자가 FE에서 태스크에 activity log(댓글)를 직접 작성하고, 작성자(agentId)를 선택할 수 있도록 BE API를 확인/보강합니다.\n\n**요구사항**:\n1. POST /api/tasks의 upsert 로직에서 comments 배열에 새 댓글을 추가할 수 있는 방식을 확인할 것\n2. 현재 POST /api/tasks는 전체 task 객체를 받아 upsert하므로, FE에서 기존 comments 배열에 새 댓글을 append하여 전송하면 동작함. 그러나 이 방식은 동시성 문제가 있으므로, 별도의 댓글 추가 전용 엔드포인트 구현을 검토할 것\n3. POST /api/tasks/[taskId]/comments (또는 POST /api/comments) 엔드포인트를 신규 추가할 것:\n   - Request body: { agentId: string, content: string }\n   - projectId는 쿼리 파라미터로 전달\n   - 서버에서 comment.id (comment-{timestamp}) 와 comment.createdAt을 자동 생성\n   - 기존 task의 comments 배열에 새 댓글을 push하고 saveDb로 저장\n   - 성공 시 생성된 댓글 객체를 반환\n4. agentId는 FE에서 셀렉트 박스로 선택한 값을 그대로 받을 것 (별도의 인증은 없음)\n5. content가 빈 문자열인 경우 400 에러를 반환할 것\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/app/api/tasks/comments/route.ts (신규 생성 - 댓글 추가 전용 엔드포인트)\n- apps/task-manager/src/shared/api/local-db/index.ts (addComment 헬퍼 함수 추가)\n\n**수락 기준**:\n- POST /api/tasks/comments?projectId=<ID>&taskId=<TASK_ID> 호출 시 { agentId, content } body로 댓글 추가 가능\n- 생성된 댓글에 자동 생성된 id와 createdAt이 포함됨\n- 기존 comments 배열이 유지되면서 새 댓글이 추가됨 (기존 댓글 손실 없음)\n- content가 빈 문자열일 때 400 에러 반환\n- projectId 또는 taskId 누락 시 400 에러 반환\n- 존재하지 않는 taskId 전달 시 404 에러 반환\n- TypeScript strict mode 타입 오류 없음",
+      "status": "IN_REVIEW",
+      "createdAt": "2026-04-05T05:23:06.549Z",
+      "updatedAt": "2026-04-05T06:06:09.323Z",
+      "comments": [
+        {
+          "id": "comment-1775369045654",
+          "agentId": "agent-be-1",
+          "content": "[작업 시작] IN_PROGRESS 전환. 구현 계획: POST /api/tasks/comments에서 taskId를 쿼리 파라미터로 받도록 변경. 빈 content 명시적 400 처리. body는 { agentId, content }만 수신.",
+          "createdAt": "2026-04-05T06:04:05.654Z"
+        }
+      ]
+    },
+    {
+      "id": "task-actlog-fe-1775366593004",
+      "title": "[FE] Activity Log 작성 폼 및 작성자 선택 UI 구현",
+      "description": "**목표**:\n태스크 상세 다이얼로그의 Activity Log 섹션에 사용자가 직접 댓글을 작성할 수 있는 입력 폼과 작성자(agentId)를 선택할 수 있는 셀렉트 박스를 추가합니다.\n\n**요구사항**:\n1. features/task-management/ui/TaskCard.tsx의 상세 다이얼로그 내 Activity Log 섹션 하단에 댓글 작성 폼을 추가할 것\n2. 댓글 작성 폼 구성:\n   - 작성자 선택: shadcn/ui Select 컴포넌트로 에이전트 목록(useAgentStore.agents)에서 선택\n   - 내용 입력: shadcn/ui Textarea 컴포넌트로 댓글 내용 입력\n   - 전송 버튼: 'Add Comment' 또는 '작성' 버튼 (Send 아이콘)\n3. 전송 시 POST /api/tasks/comments?projectId=<ID>&taskId=<TASK_ID> API를 호출할 것\n4. entities/task/model/store.ts에 addComment(taskId: string, agentId: string, content: string, projectId: string): Promise<void> 액션을 추가할 것\n5. Optimistic update: 전송 즉시 댓글이 Activity Log 목록에 표시되고, API 실패 시 롤백\n6. 전송 완료 후 입력 필드를 초기화할 것\n7. 작성자가 선택되지 않거나 내용이 비어있으면 전송 버튼을 비활성화할 것\n8. Textarea 컴포넌트가 없다면 npx shadcn@latest add textarea로 설치할 것\n\n**기술 참고**:\n- 현재 TaskCard에서 task.comments를 순회하며 Activity Log를 표시하고 있음\n- comments 배열은 Task 타입의 optional 필드 (comments?: TaskComment[])\n- TaskComment 타입: { id: string, agentId: string, content: string, createdAt: string }\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/features/task-management/ui/TaskCard.tsx (댓글 작성 폼 UI)\n- apps/task-manager/src/entities/task/model/store.ts (addComment 액션 추가)\n- apps/task-manager/src/shared/ui/textarea.tsx (shadcn/ui Textarea - 필요 시 설치)\n- apps/task-manager/src/shared/ui/select.tsx (shadcn/ui Select - 이전 태스크에서 설치 예정)\n\n**의존성**:\n- [BE] Activity Log 작성 API (task-actlog-be) 완료 후 API 연동 가능. 단, FE UI 및 스토어 구현은 선행 가능.\n\n**수락 기준**:\n- 태스크 상세 다이얼로그의 Activity Log 섹션 하단에 댓글 작성 폼이 표시됨\n- 작성자 셀렉트 박스에 현재 프로젝트의 에이전트 목록이 표시됨\n- 내용 입력 후 전송 시 Activity Log 목록에 즉시 새 댓글이 추가됨\n- 작성자 미선택 또는 내용 미입력 시 전송 버튼 비활성화\n- 전송 완료 후 입력 필드가 초기화됨\n- API 호출 실패 시 Optimistic update가 롤백됨\n- 기존 댓글이 유지되면서 새 댓글이 추가됨\n- TypeScript strict mode 타입 오류 없음\n- Tailwind CSS만 사용",
+      "status": "IN_REVIEW",
+      "createdAt": "2026-04-05T05:23:13.100Z",
+      "updatedAt": "2026-04-05T06:13:14.686Z",
+      "comments": []
+    },
+    {
+      "id": "task-kst-be-1775366820005",
+      "title": "[BE] 시간 표시를 한국시간(KST)으로 통일 - 서버 측 타임스탬프 생성 시 KST 적용",
+      "description": "**목표**:\n태스크 생성/수정 시간, 댓글 생성 시간 등 모든 타임스탬프를 한국시간(KST, UTC+9)으로 생성하거나, ISO 문자열에 타임존 정보를 포함하여 FE에서 KST로 올바르게 표시할 수 있도록 합니다.\n\n**요구사항**:\n1. 현재 서버에서 new Date().toISOString()으로 UTC 기준 타임스탬프를 생성하고 있음. 이를 KST 표시가 가능하도록 변경할 것\n2. 접근 방식 선택:\n   - (권장) 서버는 기존대로 ISO 8601 UTC 형식으로 저장하되, FE에서 표시 시 KST로 변환하는 방식 (이 경우 BE 변경 최소화)\n   - 또는 서버에서 직접 KST 오프셋(+09:00)이 포함된 ISO 문자열을 생성하는 방식\n3. shared/api/local-db/index.ts 또는 shared/lib/에 toKSTString() 유틸 함수를 추가할 것 (FE에서도 재사용 가능하도록)\n4. toKSTString() 함수는 Date 객체를 받아 'YYYY-MM-DD HH:mm:ss KST' 또는 ISO 8601 with timezone offset 형식의 문자열을 반환할 것\n5. 기존에 저장된 UTC 타임스탬프도 FE에서 정상적으로 KST 변환 표시가 가능해야 함 (하위 호환성)\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/shared/lib/date-utils.ts (신규 생성 - toKSTString 등 날짜 유틸)\n- apps/task-manager/src/app/api/tasks/route.ts (필요 시 타임스탬프 생성 방식 변경)\n- apps/task-manager/src/app/api/tasks/comments/route.ts (댓글 createdAt 생성 시 적용)\n\n**수락 기준**:\n- shared/lib/date-utils.ts에 toKSTString(date: Date): string 함수가 존재함\n- toKSTString 함수가 KST(UTC+9) 기준 시간 문자열을 반환함\n- 기존 UTC ISO 문자열 입력도 정상적으로 KST 변환됨 (하위 호환)\n- TypeScript strict mode 타입 오류 없음\n- 함수가 shared/ 레이어에 위치하여 FE/BE 모두 import 가능",
+      "status": "IN_REVIEW",
+      "createdAt": "2026-04-05T05:27:00.603Z",
+      "updatedAt": "2026-04-05T06:08:02.519Z",
+      "comments": []
+    },
+    {
+      "id": "task-kst-fe-1775366822006",
+      "title": "[FE] 모든 시간 표시를 한국시간(KST)으로 변환하여 렌더링",
+      "description": "**목표**:\n칸반 보드 UI에서 태스크 생성 시간, 수정 시간, activity log(댓글) 생성 시간 등 모든 시간 표시를 한국시간(KST)으로 변환하여 표시합니다.\n\n**요구사항**:\n1. features/task-management/ui/TaskCard.tsx에서 시간 표시 부분을 모두 KST 변환 적용할 것:\n   - 카드 썸네일의 날짜 표시 (현재 'Now'로 하드코딩되어 있으므로, task.updatedAt을 KST로 표시)\n   - 상세 다이얼로그의 'Created on' 날짜 (현재 toLocaleDateString() 사용)\n   - Activity Log 각 댓글의 시간 표시 (현재 toLocaleTimeString() 사용)\n2. shared/lib/date-utils.ts의 toKSTString 또는 formatKST 유틸 함수를 활용할 것\n3. 표시 형식:\n   - 카드 썸네일: 'MM/DD HH:mm' 형식 (간결)\n   - 상세 다이얼로그 Created on: 'YYYY년 MM월 DD일 HH:mm' 형식\n   - Activity Log 시간: 'MM/DD HH:mm:ss' 형식\n4. 기존 UTC ISO 문자열도 올바르게 KST로 변환 표시할 것 (하위 호환성)\n5. formatKSTShort(date: string): string (카드용), formatKSTFull(date: string): string (상세용), formatKSTTime(date: string): string (로그용) 등 용도별 포매터를 shared/lib/date-utils.ts에 추가할 것\n\n**기술 참고**:\n- 현재 TaskCard에서 new Date(task.createdAt).toLocaleDateString() 사용 중\n- Activity Log에서 new Date(comment.createdAt).toLocaleTimeString() 사용 중\n- 카드 썸네일에는 'Now'가 하드코딩되어 있어 실제 시간이 표시되지 않음\n- toLocaleDateString/toLocaleTimeString은 브라우저 로케일에 따라 결과가 달라지므로, 명시적 KST 변환으로 일관성 확보\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/shared/lib/date-utils.ts (포매터 함수 추가 - BE 태스크에서 생성 예정)\n- apps/task-manager/src/features/task-management/ui/TaskCard.tsx (시간 표시 부분 KST 적용)\n\n**의존성**:\n- [BE] KST 타임스탬프 유틸 (task-kst-be) 완료 후 shared/lib/date-utils.ts의 함수를 import하여 사용. 단, FE에서 자체적으로 date-utils.ts에 포매터를 추가하는 것은 선행 가능.\n\n**수락 기준**:\n- 카드 썸네일에 'Now' 대신 실제 updatedAt 시간이 KST로 표시됨 (예: '04/05 14:21')\n- 상세 다이얼로그의 Created on이 KST 기준으로 표시됨 (예: '2026년 04월 05일 14:21')\n- Activity Log의 댓글 시간이 KST 기준으로 표시됨 (예: '04/05 14:21:42')\n- UTC+0에서 저장된 기존 데이터도 KST(+9시간)로 올바르게 변환 표시됨\n- 브라우저 로케일과 무관하게 일관된 KST 시간이 표시됨\n- TypeScript strict mode 타입 오류 없음\n- Tailwind CSS만 사용",
+      "status": "IN_REVIEW",
+      "createdAt": "2026-04-05T05:27:02.111Z",
+      "updatedAt": "2026-04-05T06:48:31.691Z",
+      "comments": [],
+      "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-17753729203N",
+      "title": "[FE] 칸반 보드 섹션 높이를 브라우저 뷰포트 하단까지 확장 (풀하이트 레이아웃)",
+      "description": "**목표**:\n칸반 보드의 각 섹션(TODO, IN_PROGRESS, IN_REVIEW, DONE) 컬럼 영역이 브라우저 뷰포트 하단까지 꽉 차도록 높이를 확장합니다. 브라우저 리사이즈에 동적으로 대응하며, 컨텐츠 초과 시 세로 스크롤을 제공합니다.\n\n**요구사항**:\n1. 각 섹션 컬럼의 높이가 브라우저 뷰포트 하단까지 채워져야 함 (헤더/네비게이션 영역을 제외한 나머지 공간을 100% 활용)\n2. CSS calc() 또는 flex/grid 레이아웃을 활용하여 동적 높이 계산 (vh 단위 또는 flex-grow 사용)\n3. 브라우저 창 크기 변경(리사이즈) 시 섹션 높이가 자동으로 재조정되어야 함\n4. min-height: 800px 설정 - 브라우저를 극단적으로 줄였을 때 최소 높이 보장\n5. overflow-y: auto 또는 scroll 설정 - 태스크 카드가 섹션 높이를 초과할 경우 세로 스크롤로 처리\n6. 기존 칸반 보드의 가로 레이아웃(4컬럼 구조)은 유지할 것\n\n**FSD 아키텍처 위치**:\n- apps/task-manager/src/widgets/board/ui/TaskKanbanBoard.tsx (칸반 보드 레이아웃)\n- 관련 CSS/스타일 파일\n\n**수락 기준**:\n- 브라우저 전체 높이(1080px)에서 각 섹션 컬럼이 헤더를 제외한 나머지 영역을 꽉 채움\n- 브라우저를 1920x1080에서 1280x720으로 리사이즈할 때 섹션 높이가 동적으로 줄어듦\n- 브라우저 높이를 700px 이하로 줄여도 섹션 최소 높이 800px이 유지됨\n- 태스크 카드 10개 이상 있는 섹션에서 세로 스크롤이 정상 동작함\n- 스크롤 시 섹션 헤더(TODO, IN_PROGRESS 등 제목)는 고정되어 보임\n- 가로 4컬럼 레이아웃이 깨지지 않음",
+      "status": "IN_REVIEW",
+      "comments": [
+        {
+          "id": "comment-1775374162588",
+          "agentId": "agent-pm",
+          "content": "요구사항 변경 (재작업 요청): 1) min-height 변경 800px->500px 2) 스크롤 미동작 버그 - 카드 잘림/스크롤 안됨 수정 필수 3) 각 섹션 높이 브라우저 가변 높이 100% 4) 섹션 내부 overflow-y scroll 동작 필수 5) 최소 높이 500px 보장",
+          "createdAt": "2026-04-05T07:29:22.588Z"
+        }
+      ],
+      "createdAt": "2026-04-05T07:08:40.217Z",
+      "updatedAt": "2026-04-05T07:32:46.024Z",
+      "assigneeId": "agent-fe-1"
     }
   ],
   "agents": [
@@ -141,18 +250,18 @@
       "id": "agent-pm",
       "name": "PM Agent",
       "role": "Product Manager",
-      "status": "WORKING",
-      "lastActiveAt": "2026-04-02T12:10:16.000Z"
+      "status": "IDLE",
+      "lastActiveAt": "2026-04-05T07:08:46.000Z"
     },
     {
       "id": "agent-fe-1",
       "status": "IDLE",
-      "lastActiveAt": "2026-04-03T13:46:42.000Z"
+      "lastActiveAt": "2026-04-05T07:32:50.000Z"
     },
     {
       "id": "agent-be-1",
       "status": "IDLE",
-      "lastActiveAt": "2026-04-03T14:01:06.000Z"
+      "lastActiveAt": "2026-04-05T06:08:02.000Z"
     }
   ]
 }

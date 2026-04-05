@@ -36,7 +36,7 @@ export const HomePage = () => {
           <CreateProjectDialog />
         </div>
       </header>
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         <Tabs defaultValue="board" className="h-full flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <TabsList>
@@ -51,7 +51,7 @@ export const HomePage = () => {
             </TabsList>
           </div>
           
-          <TabsContent value="board" className="flex-1 mt-0">
+          <TabsContent value="board" className="flex-1 mt-0 overflow-hidden">
             <TaskKanbanBoard />
           </TabsContent>
           <TabsContent value="list" className="flex-1 mt-0">

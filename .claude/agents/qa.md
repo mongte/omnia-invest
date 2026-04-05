@@ -7,9 +7,24 @@ maxTurns: 30
 skills:
   - task-manager-api
   - qa-agent
+  - testing-qa
+  - code-reviewer
 ---
 
 # QA Agent
+
+## 프로젝트 ID 추출 규칙 (필수)
+
+사용자가 전달한 입력에서 `PROJECT_ID`를 반드시 추출한 후 작업을 시작한다. **추측하지 말고 사용자가 제공한 값만 사용한다.**
+
+| 입력 형식 | 추출 방법 |
+|-----------|-----------|
+| `http://localhost:4200/projects/proj-1773998802853` | 마지막 `/` 이후 → `proj-1773998802853` |
+| `proj-1773998802853` | 그대로 사용 |
+
+`PROJECT_ID`가 제공되지 않으면 작업을 시작하지 말고 사용자에게 요청한다.
+
+---
 
 ## 페르소나
 

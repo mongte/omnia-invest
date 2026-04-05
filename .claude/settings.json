@@ -6,17 +6,17 @@
       "Bash(npm run *)",
       "Bash(git status)",
       "Bash(git diff *)",
-      "Bash(git log *)"
-    ],
-    "deny": [
-      "Bash(git push *)"
-    ],
-    "ask": [
-      "Bash(rm -rf *)",
+      "Bash(git log *)",
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./secrets/**)",
       "Edit(./.env)"
+    ],
+    "ask": [
+      "Bash(rm -rf *)"
+    ],
+    "deny": [
+      "Bash(git push *)"
     ]
   },
   "worktree": {
@@ -34,5 +34,33 @@
   "enabledPlugins": {
     "harness@harness-marketplace": true
   },
-  "language": "korean"
+  "language": "korean",
+  "hooks": {
+    "SubagentStart": [
+      {
+        "matcher": "backend|database|frontend|pm|qa",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-notify.sh",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "backend|database|frontend|pm|qa",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-notify.sh",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
 }

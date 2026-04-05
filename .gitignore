@@ -50,6 +50,9 @@ out
 .next/
 build/
 
+# Auth credentials (never commit)
+.claude/auth/
+
 # Environment variables
 .env
 .env*.local
