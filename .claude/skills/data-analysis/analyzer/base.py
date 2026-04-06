@@ -36,16 +36,34 @@ class AnalysisContext:
 
     def load_active_strategy(self) -> dict[str, Any]:
         """활성 전략을 로드하여 self.strategy에 저장."""
-        resp = self.client.rpc("get_active_strategy", {}).execute()
-        self.strategy = resp.data if resp.data else {}
+        resp = (
+            self.client.schema("trading")
+            .table("strategies")
+            .select("*")
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+        )
+        self.strategy = resp.data[0] if resp.data else {}
         if not self.strategy:
             raise ValueError("활성화된 전략이 없습니다. 먼저 전략을 등록/활성화하세요.")
+        # params가 문자열이면 JSON 파싱
+        if isinstance(self.strategy.get("params"), str):
+            import json
+            self.strategy["params"] = json.loads(self.strategy["params"])
         return self.strategy
 
     def load_universe(self) -> pd.DataFrame:
         """활성 유니버스 종목 목록 로드."""
-        resp = self.client.rpc("get_active_universe", {}).execute()
-        self.universe = pd.DataFrame(resp.data)
+        resp = (
+            self.client.schema("trading")
+            .table("watch_universe")
+            .select("stock_code,corp_code,corp_name,rank")
+            .eq("is_active", True)
+            .order("rank")
+            .execute()
+        )
+        self.universe = pd.DataFrame(resp.data) if resp.data else pd.DataFrame()
         return self.universe
 
     def load_ohlcv(self, stock_codes: list[str] | None = None,
