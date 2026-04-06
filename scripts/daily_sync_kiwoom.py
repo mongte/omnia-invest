@@ -22,8 +22,8 @@ PROJECT_ROOT = '/Users/aimmo-ai-0091/GitHub/omnia-invest'
 AUTH_FILE = f'{PROJECT_ROOT}/.claude/auth/kiwoom.env'
 SUPABASE_ENV_FILE = f'{PROJECT_ROOT}/apps/pharos-lab/.env.local'
 BASE_URL = 'https://api.kiwoom.com'
-DELAY_SEC = 0.5
-TOP_N = 50
+DELAY_SEC = 0.8  # 200종목 대응: 0.5→0.8초 (rate limit 안전 마진)
+TOP_N = 200
 
 
 # --- 유틸리티 ---
@@ -159,19 +159,52 @@ def run_pre_market(token: str, supabase_url: str, service_key: str) -> None:
     print('[pre-market] 시작')
     total_rows = 0
 
-    # 1. 거래량급증 (ka10023)
-    print('  [1/2] ka10023 거래량급증 조회...')
-    result = kiwoom_post(token, 'ka10023', '/api/dostk/rkinfo', {
-        'mrkt_tp': '001',
-        'sort_tp': '1',
-        'tm_tp': '2',
-        'trde_qty_tp': '5',
-        'tm': '',
-        'stk_cnd': '0',
-        'pric_tp': '0',
-        'stex_tp': '1',
-    })
-    ranking = result.get('trde_qty_sdnin', [])[:TOP_N]
+    # 1. 거래량급증 (ka10023) — 페이지네이션으로 TOP_N개 수집
+    print(f'  [1/2] ka10023 거래량급증 조회 (Top{TOP_N})...')
+    ranking: list[dict] = []
+    next_key = ''
+    page = 0
+
+    while len(ranking) < TOP_N:
+        headers = {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'api-id': 'ka10023',
+            'authorization': f'Bearer {token}',
+        }
+        if next_key:
+            headers['cont-yn'] = 'Y'
+            headers['next-key'] = next_key
+
+        resp = httpx.post(f'{BASE_URL}/api/dostk/rkinfo', headers=headers, json={
+            'mrkt_tp': '001',
+            'sort_tp': '1',
+            'tm_tp': '2',
+            'trde_qty_tp': '5',
+            'tm': '',
+            'stk_cnd': '0',
+            'pric_tp': '0',
+            'stex_tp': '1',
+        }, timeout=30)
+        result = resp.json()
+        if result.get('return_code') != 0:
+            break
+
+        batch = result.get('trde_qty_sdnin', [])
+        if not batch:
+            break
+        ranking.extend(batch)
+        page += 1
+        print(f'    페이지 {page}: {len(batch)}종목 (누적 {len(ranking)})')
+
+        cont = resp.headers.get('cont-yn', 'N')
+        if cont != 'Y':
+            break
+        next_key = resp.headers.get('next-key', '')
+        if not next_key:
+            break
+        time.sleep(DELAY_SEC)
+
+    ranking = ranking[:TOP_N]
     print(f'  거래량급증 {len(ranking)}종목 수신')
 
     # watch_universe UPSERT
@@ -184,7 +217,7 @@ def run_pre_market(token: str, supabase_url: str, service_key: str) -> None:
             'stock_code': stock_code,
             'corp_name': item.get('stk_nm', '').strip(),
             'market': 'KOSPI',
-            'universe_type': 'volume_top50',
+            'universe_type': 'volume_top200',
             'rank': i + 1,
             'is_active': True,
             'selected_at': datetime.now().isoformat(),

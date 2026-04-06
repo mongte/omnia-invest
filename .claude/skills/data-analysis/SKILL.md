@@ -1,170 +1,105 @@
 ---
 name: data-analysis
-description: 투자전략 기반 종목 분석 모듈 - 전략 등록/활성화, 기술적·펀더멘털 분석, 시그널 생성
+description: 동적 가중치 기반 종목 분석 모듈 - 전략 등록/활성화, 3-Layer 스코어링(팩터+타이밍+ML), 정규화, 시그널 생성
 triggers:
   - 투자전략 등록
   - 전략 분석 실행
   - 종목 스코어링
   - 시그널 생성
+  - 동적 가중치
   - 백테스트
 ---
 
 # Data Analysis Skill
 
-투자전략 보고서를 등록하고, trading 스키마의 데이터를 기반으로 종목 분석을 실행하여 시그널을 생성하는 파이프라인.
+투자전략 보고서 기반 동적 스코어링 시스템. trading 스키마 데이터로 종목 분석 → 시그널 → public.stock_scores 동기화.
 
-## 아키텍처
+## 아키텍처 (3-Layer)
 
 ```
-투자전략 보고서 등록
-  ↓
-trading.strategies 저장 + 활성화
-  ↓
-analyzer/runner.py 실행
-  ├─ indicators.py  (기술적 지표 계산)
-  ├─ scoring.py     (전략 파라미터 기반 스코어링)
-  └─ base.py        (DB 연결, 데이터 로드)
-  ↓
-trading.strategy_signals 저장
-  ↓
-결과 조회 (get_latest_signals RPC)
+Layer 1 (팩터) ── 월간 ── "이 종목이 좋은가?" ── PER,PBR,ROE,매출성장,공시
+     ↓
+Layer 2 (타이밍) ── 매일 ── "지금 사야 하나?" ── RSI,MACD,BB,이격도,MA크로스
+     ↓
+Layer 3 (ML) ── 주간 재학습 ── "3~5일 후 오를 확률?" ── XGBoost/LightGBM
+     ↓
+동적 가중합 → Score_t = Σ w_i(t) × Normalize(Factor_i(t)) × 100
+     ↓
+시그널 판정 → Strong Buy / Buy / Hold / Sell / Strong Sell
 ```
 
-## DB 테이블
+## 모듈 구조
 
-| 테이블 | 역할 |
+```
+analyzer/
+├── __init__.py           # 모듈 exports
+├── base.py               # Supabase 연결, 데이터 로드 (AnalysisContext)
+├── indicators.py         # 기술적 지표 (MA, RSI, MACD, BB, 이격도)
+├── normalizers.py        # 4종 정규화 (Min-Max, Sigmoid, Percentile, Z-Score)
+├── dynamic_weights.py    # 동적 가중치 (IC가중, 레짐스위칭, ML메타모델, EMA스무딩)
+├── scoring.py            # 3-Layer 스코어러 + public.stock_scores 매핑
+└── runner.py             # 분석 파이프라인 실행 엔진
+```
+
+## 동적 가중치 방법론 (3종)
+
+| 방법 | 수식 | 장점 | 단점 |
+|------|------|------|------|
+| **IC 가중** | w_i(t) = \|IC_i(t)\| / Σ\|IC_j(t)\| | 구현 쉬움, 예측력 반영 | IC 노이즈 민감 |
+| **레짐 스위칭** | regime = GMM(vol, mom) → 레짐별 w | 시장 국면 대응 | 레짐 전환 감지 지연 |
+| **ML 메타모델** | w = XGBoost(IC, vol, mom) | 비선형 학습 | 과적합 위험, 해석 어려움 |
+
+기본값: **IC가중 70% + 레짐스위칭 30% 하이브리드** (EMA α=0.2 스무딩)
+
+## 정규화 매핑
+
+| 지표 | 방법 | 이유 |
+|------|------|------|
+| PER, PBR | Min-Max (역수) | 낮을수록 저평가, 안정적 분포 |
+| ROE, 매출성장률 | Min-Max | 높을수록 우량, 안정적 분포 |
+| 이벤트 CAR | Percentile Rank | 종목 간 상대비교, 분포 무관 |
+| RSI, MACD, MA크로스 | Sigmoid | 극단값 완화, 부드러운 전환 |
+| BB 위치, 이격도 | Z-Score 롤링 | 시계열 특성 보존 |
+
+## 시그널 임계값
+
+| 점수 | 시그널 | 의미 |
+|------|--------|------|
+| 85~100 | Strong Buy | 강력 매수 |
+| 65~84 | Buy | 매수 |
+| 45~64 | Hold | 보유/관망 |
+| 25~44 | Sell | 매도 |
+| 0~24 | Strong Sell | 강력 매도 |
+
+## DB 연동
+
+### trading 스키마 (분석 결과 상세)
+- `trading.strategies` — 전략 마스터 (params JSONB에 가중치/임계값)
+- `trading.analysis_runs` — 분석 실행 이력
+- `trading.strategy_signals` — 종목별 시그널 + score_detail + indicators
+
+### public 스키마 (대시보드용 요약)
+- `public.stock_scores` — 4팩터 점수(0~100) + total + descriptions
+- `public.ranking_history` — 일별 순위 스냅샷
+
+### 동기화 흐름
+```
+runner.py → trading.strategy_signals (상세)
+         → public.stock_scores UPSERT (요약)
+         → public.ranking_history INSERT (순위)
+```
+
+## 참조 보고서
+
+| 보고서 | 역할 | 위치 |
+|--------|------|------|
+| 보고서 1 | 팩터/지표/파이프라인 설계 | `doc/research/KOSPI-대형주-200종목-대상으로-멀티팩터-피처-+.pdf` |
+| 보고서 2 | 동적 가중치/정규화/안정화 | `doc/research/KOSPI-200종목-대상-3-Laye.pdf` |
+
+## 사용 에이전트
+
+| 에이전트 | 역할 |
 |--------|------|
-| `trading.strategies` | 전략 마스터 (name, version, params, is_active) |
-| `trading.analysis_runs` | 분석 실행 이력 (strategy_id, status, run_date) |
-| `trading.strategy_signals` | 종목별 시그널 (signal, total_score, score_detail, rank) |
-
-### 핵심 RPC 함수
-
-| 함수 | 역할 |
-|------|------|
-| `trading.activate_strategy(id)` | 기존 전략 비활성화 + 지정 전략 활성화 |
-| `trading.get_active_strategy()` | 현재 활성 전략 JSON 반환 |
-| `trading.get_latest_signals(strategy_id?)` | 최신 분석 시그널 목록 |
-
-## 전략 파라미터 구조 (params JSONB)
-
-```json
-{
-  "factors": {
-    "momentum": {
-      "weight": 0.3,
-      "lookback_days": 60,
-      "indicators": ["rsi14", "macd", "ma_cross"]
-    },
-    "value": {
-      "weight": 0.3,
-      "metrics": ["per", "pbr", "roe"]
-    },
-    "quality": {
-      "weight": 0.2,
-      "metrics": ["roe", "debt_ratio", "revenue_growth"]
-    },
-    "event": {
-      "weight": 0.2,
-      "disclosure_types": ["earnings", "buyback", "dividend"]
-    }
-  },
-  "signal_thresholds": {
-    "strong_buy": 80,
-    "buy": 65,
-    "hold": 40,
-    "sell": 25
-  },
-  "universe": {
-    "market": "KOSPI",
-    "min_market_cap": null,
-    "max_stocks": 50
-  }
-}
-```
-
-## 시그널 유형
-
-| 시그널 | 점수 범위 | 의미 |
-|--------|-----------|------|
-| `strong_buy` | 80~100 | 강력 매수 |
-| `buy` | 65~79 | 매수 |
-| `hold` | 40~64 | 보유/관망 |
-| `sell` | 25~39 | 매도 |
-| `strong_sell` | 0~24 | 강력 매도 |
-
-## 사용 가능 데이터 소스
-
-| 소스 테이블 | 데이터 | 레코드 수 |
-|-------------|--------|-----------|
-| `trading.ohlcv_daily` | 일봉 OHLCV (1년) | ~8,200 |
-| `trading.stock_fundamentals` | PER, PBR, ROE, 시총 등 | ~100 |
-| `trading.financial_statements` | IFRS 재무제표 (2년) | ~3,500 |
-| `trading.disclosures` | 공시 (6개월) | ~700 |
-| `trading.watch_universe` | KOSPI Top50 활성 종목 | ~56 |
-
-## 분석 모듈 (analyzer/)
-
-### base.py — DB 연결 & 데이터 로드
-- Supabase REST API 호출로 trading 스키마 데이터 로드
-- pandas DataFrame 변환
-- 활성 전략 파라미터 파싱
-
-### indicators.py — 기술적 지표 계산
-- 이동평균 (MA5, MA20, MA60, MA120)
-- RSI (14일)
-- MACD (12, 26, 9)
-- 볼린저밴드 (20, 2)
-- 이격도 (현재가/MA20 비율)
-- 52주 고/저 대비 위치
-
-### scoring.py — 팩터 스코어링
-- 모멘텀 스코어: RSI, MACD, MA 크로스 기반
-- 밸류 스코어: PER, PBR 섹터 상대 평가
-- 퀄리티 스코어: ROE, 재무 안정성
-- 이벤트 스코어: 최근 공시 유형별 가중치
-- 종합 점수 = 팩터별 가중합
-
-### runner.py — 분석 실행 엔진
-1. 활성 전략 로드
-2. 유니버스 종목 목록 로드
-3. 종목별 지표 계산 + 스코어링
-4. 시그널 판정 + 순위 매기기
-5. `trading.analysis_runs` + `trading.strategy_signals` 저장
-
-## 워크플로우
-
-### 전략 등록
-```
-사용자 → 투자전략 보고서 텍스트 제공
-  ↓
-strategy 에이전트가 보고서 파싱 → params JSON 구성
-  ↓
-trading.strategies INSERT → trading.activate_strategy(id) 호출
-  ↓
-기존 활성 전략 자동 비활성화
-```
-
-### 분석 실행
-```
-사용자 → "분석 실행해줘"
-  ↓
-runner.py → 활성 전략 로드
-  ↓
-종목별: OHLCV + Fundamentals + Financials + Disclosures 로드
-  ↓
-indicators.py → 기술적 지표 계산
-  ↓
-scoring.py → 팩터별 스코어 → 종합 점수 → 시그널 판정
-  ↓
-DB 저장: analysis_runs + strategy_signals
-  ↓
-결과 리포트 출력
-```
-
-## 제약사항
-
-- Supabase 무료 티어 500MB 제한 — 시그널은 최근 30일만 보존 권장
-- OHLCV 1년 데이터 → 장기 모멘텀(200일 등) 계산 제한
-- 재무제표 2년 → YoY 성장률 계산 가능, 장기 트렌드 제한
-- 실시간 데이터 없음 — 일 단위 분석만 가능
+| **strategy** | 전략 설계, 스킬 구조 개선, 스키마 설계 |
+| **backend** | Python 분석 모듈 구현, API 연동 |
+| **database** | DB 마이그레이션, 데이터 동기화 |

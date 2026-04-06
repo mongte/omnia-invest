@@ -77,22 +77,58 @@ class KiwoomClient:
         """
         return self._post('/api/dostk/stkinfo', 'ka10001', {'stk_cd': stock_code})
 
-    def get_volume_ranking(self, market: str = '001') -> list[dict]:
+    def get_volume_ranking(self, market: str = '001', top_n: int = 200) -> list[dict]:
         """
-        ka10023 - 거래량급증요청
-        코스피(001) 거래량 상위 종목 반환.
+        ka10023 - 거래량급증요청 (페이지네이션 지원)
+        코스피(001) 거래량 상위 종목 반환. top_n개까지 수집.
         """
-        result = self._post('/api/dostk/rkinfo', 'ka10023', {
-            'mrkt_tp': market,
-            'sort_tp': '1',
-            'tm_tp': '2',
-            'trde_qty_tp': '5',
-            'tm': '',
-            'stk_cnd': '0',
-            'pric_tp': '0',
-            'stex_tp': '1',
-        })
-        return result.get('trde_qty_sdnin', [])
+        all_stocks: list[dict] = []
+        next_key = ''
+        page = 0
+
+        while len(all_stocks) < top_n:
+            body = {
+                'mrkt_tp': market,
+                'sort_tp': '1',
+                'tm_tp': '2',
+                'trde_qty_tp': '5',
+                'tm': '',
+                'stk_cnd': '0',
+                'pric_tp': '0',
+                'stex_tp': '1',
+            }
+            headers = self._headers('ka10023')
+            if next_key:
+                headers['cont-yn'] = 'Y'
+                headers['next-key'] = next_key
+
+            resp = httpx.post(
+                f'{self.base_url}/api/dostk/rkinfo',
+                headers=headers,
+                json=body,
+                timeout=30,
+            )
+            result = resp.json()
+            if result.get('return_code') != 0:
+                break
+
+            batch = result.get('trde_qty_sdnin', [])
+            if not batch:
+                break
+            all_stocks.extend(batch)
+            page += 1
+
+            # 연속 조회 확인
+            cont = resp.headers.get('cont-yn', 'N')
+            if cont != 'Y':
+                break
+            next_key = resp.headers.get('next-key', '')
+            if not next_key:
+                break
+
+            time.sleep(self.delay)  # rate limit 대응
+
+        return all_stocks[:top_n]
 
     def get_daily_chart(self, stock_code: str, base_dt: str) -> list[dict]:
         """

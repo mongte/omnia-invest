@@ -1,0 +1,33 @@
+name: Daily Stock Analysis
+
+on:
+  schedule:
+    # UTC 08:30 = KST 17:30 (평일만)
+    # post-market(16:30) OHLCV 수집 완료 후 1시간 여유
+    - cron: '30 8 * * 1-5'
+  workflow_dispatch: # 수동 실행
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: scripts/requirements-analysis.txt
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements-analysis.txt
+
+      - name: Run analysis
+        run: python scripts/run_analysis.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

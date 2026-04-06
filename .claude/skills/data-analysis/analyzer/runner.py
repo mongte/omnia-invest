@@ -3,6 +3,8 @@ runner.py — 분석 실행 엔진
 
 활성 전략을 로드하고, 유니버스 종목에 대해
 기술적 지표 계산 → 팩터 스코어링 → 시그널 판정 → DB 저장.
++ public.stock_scores UPSERT 동기화
++ public.ranking_history INSERT
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import pandas as pd
 
 from .base import AnalysisContext
 from .indicators import TechnicalIndicators
+from .ml_predictor import MLPredictor
 from .scoring import StrategyScorer, ScoreResult
 
 
@@ -25,6 +28,7 @@ class AnalysisRunner:
     def __init__(self, ctx: AnalysisContext | None = None):
         self.ctx = ctx or AnalysisContext()
         self.scorer: StrategyScorer | None = None
+        self.predictor: MLPredictor = MLPredictor()
         self.run_id: int | None = None
 
     def run(self, run_date: date | None = None) -> list[ScoreResult]:
@@ -41,7 +45,10 @@ class AnalysisRunner:
         self.run_id = self._create_run(strategy["id"], run_date)
 
         try:
-            # 3. 종목별 분석
+            # 3. ML 모델 로드/재학습 (주간)
+            self._ensure_ml_model()
+
+            # 4. 종목별 분석
             results: list[ScoreResult] = []
             codes = self.ctx.universe["stock_code"].tolist()
 
@@ -53,10 +60,16 @@ class AnalysisRunner:
             # 4. 순위 매기기
             results = self.scorer.rank_results(results)
 
-            # 5. 시그널 DB 저장
+            # 5. trading.strategy_signals 저장
             self._save_signals(results, run_date)
 
-            # 6. 실행 완료 기록
+            # 6. public.stock_scores UPSERT (대시보드용)
+            self._sync_public_scores(results)
+
+            # 7. public.ranking_history INSERT (순위 이력)
+            self._sync_ranking_history(results, run_date)
+
+            # 8. 실행 완료 기록
             elapsed = round(time.time() - started, 2)
             self._finish_run(
                 status="success",
@@ -94,6 +107,9 @@ class AnalysisRunner:
                 fundamentals["week52_high"], fundamentals["week52_low"],
             )
 
+        # Layer 3: ML 예측 확률 (모델 없으면 None → 0.5 폴백)
+        ml_prob = self.predictor.predict(ohlcv, fundamentals)
+
         # 스코어링
         result = self.scorer.score_stock(
             stock_code=stock_code,
@@ -101,13 +117,30 @@ class AnalysisRunner:
             fundamentals=fundamentals,
             financials=self.ctx.financials,
             disclosures=self.ctx.disclosures,
+            ml_prob=ml_prob,
         )
 
         # 지표 스냅샷 저장용
         result.score_detail["_indicators"] = indicators
         return result
 
-    # ── DB 저장 ──
+    # ── ML 모델 관리 ──
+
+    def _ensure_ml_model(self) -> None:
+        """ML 모델 로드. 없거나 7일 이상 경과 시 재학습."""
+        self.predictor.load_model()
+        if self.predictor.needs_retrain():
+            try:
+                meta = self.predictor.train(
+                    ohlcv_dict=self.ctx.ohlcv,
+                    fundamentals_df=self.ctx.fundamentals,
+                )
+                print(f"ML 모델 재학습 완료: accuracy={meta['cv_accuracy_mean']:.3f} "
+                      f"(±{meta['cv_accuracy_std']:.3f}), samples={meta['n_samples']}")
+            except ValueError as e:
+                print(f"ML 모델 학습 스킵: {e} (폴백: ml_prob=0.5)")
+
+    # ── trading 스키마 저장 ──
 
     def _create_run(self, strategy_id: int, run_date: date) -> int:
         """analysis_runs 레코드 생성, id 반환."""
@@ -147,11 +180,10 @@ class AnalysisRunner:
         )
 
     def _save_signals(self, results: list[ScoreResult], signal_date: date) -> None:
-        """strategy_signals 일괄 저장."""
+        """trading.strategy_signals 일괄 저장."""
         strategy_id = self.ctx.strategy["id"]
         rows = []
         for r in results:
-            # _indicators를 indicators 컬럼으로 분리
             indicators = r.score_detail.pop("_indicators", {})
             rows.append({
                 "run_id": self.run_id,
@@ -173,6 +205,56 @@ class AnalysisRunner:
                 .execute()
             )
 
+    # ── public 스키마 동기화 ──
+
+    def _sync_public_scores(self, results: list[ScoreResult]) -> None:
+        """public.stock_scores UPSERT. 대시보드에서 바로 조회 가능."""
+        rows = []
+        for r in results:
+            mapped = self.scorer.to_public_scores(r)
+            mapped["scored_at"] = datetime.now().isoformat()
+            rows.append(mapped)
+
+        if not rows:
+            return
+
+        # stock_id 기준으로 UPSERT (기존 점수 덮어쓰기)
+        # stock_scores에 stock_id unique 제약이 없으므로 delete → insert
+        stock_ids = [row["stock_id"] for row in rows]
+        (
+            self.ctx.client
+            .table("stock_scores")
+            .delete()
+            .in_("stock_id", stock_ids)
+            .execute()
+        )
+        (
+            self.ctx.client
+            .table("stock_scores")
+            .insert(rows)
+            .execute()
+        )
+
+    def _sync_ranking_history(self, results: list[ScoreResult],
+                              run_date: date) -> None:
+        """public.ranking_history INSERT. 일별 순위 스냅샷."""
+        rows = [
+            {
+                "stock_id": r.stock_code,
+                "rank_date": run_date.isoformat(),
+                "rank": r.rank,
+                "total_score": int(r.total_score),
+            }
+            for r in results
+        ]
+        if rows:
+            (
+                self.ctx.client
+                .table("ranking_history")
+                .insert(rows)
+                .execute()
+            )
+
 
 def main():
     """CLI 실행 진입점."""
@@ -189,6 +271,8 @@ def main():
     print(f"{'-'*40}")
     for r in results[:20]:
         print(f"{r.rank:>4} {r.stock_code:>8} {r.signal:>12} {r.total_score:>6.1f}")
+    print(f"\npublic.stock_scores 동기화 완료")
+    print(f"public.ranking_history 동기화 완료")
 
 
 if __name__ == "__main__":

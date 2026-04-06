@@ -12,9 +12,9 @@ export function SwRegister() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
     if (typeof window === 'undefined') return;
+    // 프로덕션 환경에서만 SW 등록 (개발 환경에서 precaching 404 에러 방지)
+    if (process.env.NODE_ENV !== 'production') return;
 
-    // 개발 환경에서도 테스트 가능하도록 조건 제거
-    // (next.config.ts의 disable: false와 일치)
     void registerSW();
   }, []);
 
