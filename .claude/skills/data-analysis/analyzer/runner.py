@@ -286,7 +286,7 @@ class AnalysisRunner:
             (
                 self.ctx.client
                 .table("ranking_history")
-                .insert(rows)
+                .upsert(rows, on_conflict="stock_id,rank_date")
                 .execute()
             )
 
