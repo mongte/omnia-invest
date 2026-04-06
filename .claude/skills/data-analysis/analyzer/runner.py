@@ -214,11 +214,19 @@ class AnalysisRunner:
                 "rank": r.rank,
             })
 
-        if rows:
+        # 중복 stock_code 제거 (같은 run_id 내)
+        seen = set()
+        unique_rows = []
+        for row in rows:
+            if row["stock_code"] not in seen:
+                seen.add(row["stock_code"])
+                unique_rows.append(row)
+
+        if unique_rows:
             (
                 self.ctx.client.schema("trading")
                 .table("strategy_signals")
-                .upsert(rows, on_conflict="run_id,stock_code")
+                .upsert(unique_rows, on_conflict="run_id,stock_code")
                 .execute()
             )
 
