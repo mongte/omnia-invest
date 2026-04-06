@@ -182,13 +182,15 @@ class StrategyScorer:
         # Layer 1: 팩터 점수
         factor_raw = self.factor_score(fundamentals, financials, disclosures, stock_code)
         # 유니버스 단위 정규화는 rank_results에서 수행 → 여기선 raw 저장
-        factor_avg = float(np.mean(list(factor_raw.values()))) if factor_raw else 50.0
+        vals = [v for v in factor_raw.values() if not (isinstance(v, float) and np.isnan(v))]
+        factor_avg = float(np.mean(vals)) if vals else 50.0
         detail["factor_raw"] = factor_avg
         detail.update({f"f_{k}": v for k, v in factor_raw.items()})
 
         # Layer 2: 타이밍 점수
         timing_raw = self.timing_score(indicators)
-        timing_avg = float(np.mean(list(timing_raw.values()))) if timing_raw else 50.0
+        tvals = [v for v in timing_raw.values() if not (isinstance(v, float) and np.isnan(v))]
+        timing_avg = float(np.mean(tvals)) if tvals else 50.0
         detail["timing_raw"] = timing_avg
         detail.update({f"t_{k}": v for k, v in timing_raw.items()})
 

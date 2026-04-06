@@ -10,11 +10,23 @@ runner.py — 분석 실행 엔진
 from __future__ import annotations
 
 import json
+import math
 import time
 from datetime import date, datetime
 from typing import Any
 
 import pandas as pd
+
+
+def _sanitize(obj: Any) -> Any:
+    """NaN/Inf를 None으로 변환하여 JSON 직렬화 안전하게."""
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize(v) for v in obj]
+    return obj
 
 from .base import AnalysisContext
 from .indicators import TechnicalIndicators
@@ -192,8 +204,8 @@ class AnalysisRunner:
                 "signal_date": signal_date.isoformat(),
                 "signal": r.signal,
                 "total_score": r.total_score,
-                "score_detail": json.dumps(r.score_detail),
-                "indicators": json.dumps(indicators),
+                "score_detail": json.dumps(_sanitize(r.score_detail)),
+                "indicators": json.dumps(_sanitize(indicators)),
                 "rank": r.rank,
             })
 
