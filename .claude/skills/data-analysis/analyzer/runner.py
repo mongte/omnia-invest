@@ -272,16 +272,17 @@ class AnalysisRunner:
         resp = self.ctx.client.table("stocks").select("id").execute()
         valid_ids = {row["id"] for row in (resp.data or [])}
 
-        rows = [
-            {
-                "stock_id": r.stock_code,
-                "rank_date": run_date.isoformat(),
-                "rank": r.rank,
-                "total_score": int(r.total_score),
-            }
-            for r in results
-            if r.stock_code in valid_ids
-        ]
+        seen = set()
+        rows = []
+        for r in results:
+            if r.stock_code in valid_ids and r.stock_code not in seen:
+                seen.add(r.stock_code)
+                rows.append({
+                    "stock_id": r.stock_code,
+                    "rank_date": run_date.isoformat(),
+                    "rank": r.rank,
+                    "total_score": int(r.total_score),
+                })
         if rows:
             (
                 self.ctx.client

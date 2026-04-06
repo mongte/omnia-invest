@@ -54,7 +54,7 @@ class AnalysisContext:
         return self.strategy
 
     def load_universe(self) -> pd.DataFrame:
-        """활성 유니버스 종목 목록 로드."""
+        """활성 유니버스 종목 목록 로드 (stock_code 중복 제거)."""
         resp = (
             self.client.schema("trading")
             .table("watch_universe")
@@ -63,7 +63,11 @@ class AnalysisContext:
             .order("rank")
             .execute()
         )
-        self.universe = pd.DataFrame(resp.data) if resp.data else pd.DataFrame()
+        if resp.data:
+            df = pd.DataFrame(resp.data)
+            self.universe = df.drop_duplicates(subset=["stock_code"], keep="first")
+        else:
+            self.universe = pd.DataFrame()
         return self.universe
 
     def load_ohlcv(self, stock_codes: list[str] | None = None,
