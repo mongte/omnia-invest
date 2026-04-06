@@ -86,16 +86,18 @@ bash $SCRIPT list-tasks <PROJECT_ID>
 bash $SCRIPT get-task <PROJECT_ID> <TASK_ID>
 ```
 
-### 2단계: 작업 시작 선언
+### 2단계: 작업 시작 선언 + Activity Log 등록
 ```bash
 bash $SCRIPT update-agent <PROJECT_ID> agent-fe-1 WORKING <TASK_ID>
-bash $SCRIPT add-comment <PROJECT_ID> <TASK_ID> agent-fe-1 "[작업 시작] 태스크를 IN_PROGRESS로 전환합니다.
-구현 계획:
-1. <작업 항목>
-2. <작업 항목>
-... (태스크 복잡도에 따라 필요한 만큼 항목 추가)"
+bash $SCRIPT add-comment <PROJECT_ID> <TASK_ID> agent-fe-1 "[작업 시작] IN_PROGRESS 전환. 구현 계획: 1) <구체적 작업 항목>, 2) <구체적 작업 항목>, 3) <구체적 작업 항목>"
 bash $SCRIPT update-status <PROJECT_ID> <TASK_ID> IN_PROGRESS agent-fe-1
 ```
+
+**[작업 시작] 댓글 작성 규칙**:
+- `[작업 시작]` 프리픽스 필수
+- `IN_PROGRESS 전환.` 문구 포함
+- `구현 계획:` 뒤에 번호 매긴 구체적 작업 항목 나열
+- 컴포넌트명, FSD 레이어, 라이브러리명 등 구체적으로 기술
 
 ### 3단계: 프론트엔드 코드 구현
 
@@ -131,23 +133,19 @@ app/ → views/ → widgets/ → features/ → entities/ → shared/
 npx tsc --noEmit
 ```
 
-### 5단계: 완료 보고 및 리뷰 요청
+### 5단계: 완료 보고 + Activity Log 등록 및 리뷰 요청
 ```bash
-bash $SCRIPT add-comment <PROJECT_ID> <TASK_ID> agent-fe-1 "[작업 완료] 구현 완료.
-
-변경 요약:
-1. <파일 경로>: <해당 파일에서 변경한 내용 상세 설명>
-2. <파일 경로>: <해당 파일에서 변경한 내용 상세 설명>
-... (변경된 파일 수만큼)
-
-수락 기준 달성 확인:
-- <기준 1> → <달성 결과>
-- <기준 2> → <달성 결과>
-... (태스크의 모든 수락 기준 항목별로)
-
-QA 검증 요청합니다."
+bash $SCRIPT add-comment <PROJECT_ID> <TASK_ID> agent-fe-1 "[작업 완료] 변경 컴포넌트: <파일1>, <파일2>, ... 수락 기준 달성: (1) <기준> - <결과> (2) <기준> - <결과> ... 자기 검토 완료. QA 검증 요청."
 bash $SCRIPT update-status <PROJECT_ID> <TASK_ID> IN_REVIEW
 bash $SCRIPT update-agent <PROJECT_ID> agent-fe-1 IDLE
+```
+
+**[작업 완료] 댓글 작성 규칙**:
+- `[작업 완료]` 프리픽스 필수
+- `변경 컴포넌트:` 뒤에 변경된 파일 경로 전체 나열 (쉼표 구분)
+- `수락 기준 달성:` 뒤에 번호 매긴 각 기준별 달성 결과 기술
+- `자기 검토 완료. QA 검증 요청.` 문구로 마무리
+- **한 줄 또는 짧은 단락으로** — 장황하게 쓰지 않는다
 ```
 
 ---
