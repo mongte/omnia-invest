@@ -234,8 +234,14 @@ class AnalysisRunner:
 
     def _sync_public_scores(self, results: list[ScoreResult]) -> None:
         """public.stock_scores UPSERT. 대시보드에서 바로 조회 가능."""
+        # public.stocks에 존재하는 종목만 필터 (FK 제약)
+        resp = self.ctx.client.table("stocks").select("id").execute()
+        valid_ids = {row["id"] for row in (resp.data or [])}
+
         rows = []
         for r in results:
+            if r.stock_code not in valid_ids:
+                continue
             mapped = self.scorer.to_public_scores(r)
             mapped["scored_at"] = datetime.now().isoformat()
             rows.append(mapped)
@@ -243,8 +249,7 @@ class AnalysisRunner:
         if not rows:
             return
 
-        # stock_id 기준으로 UPSERT (기존 점수 덮어쓰기)
-        # stock_scores에 stock_id unique 제약이 없으므로 delete → insert
+        # stock_id 기준 delete → insert
         stock_ids = [row["stock_id"] for row in rows]
         (
             self.ctx.client
@@ -263,6 +268,10 @@ class AnalysisRunner:
     def _sync_ranking_history(self, results: list[ScoreResult],
                               run_date: date) -> None:
         """public.ranking_history INSERT. 일별 순위 스냅샷."""
+        # public.stocks에 존재하는 종목만 (FK 제약)
+        resp = self.ctx.client.table("stocks").select("id").execute()
+        valid_ids = {row["id"] for row in (resp.data or [])}
+
         rows = [
             {
                 "stock_id": r.stock_code,
@@ -271,6 +280,7 @@ class AnalysisRunner:
                 "total_score": int(r.total_score),
             }
             for r in results
+            if r.stock_code in valid_ids
         ]
         if rows:
             (
