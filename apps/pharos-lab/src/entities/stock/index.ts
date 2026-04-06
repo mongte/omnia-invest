@@ -5,4 +5,6 @@ export type {
   DisclosureEvent,
   OHLCVData,
   RankingHistory,
+  LlmSentiment,
+  LlmSummaryData,
 } from './types';

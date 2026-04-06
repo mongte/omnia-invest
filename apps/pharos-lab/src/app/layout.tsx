@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { QueryProvider } from './providers/query-provider';
+import { SwRegister } from './providers/sw-register';
 import './globals.css';
 
 const geistSans = Geist({
@@ -25,9 +27,12 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
-      <body className="h-full bg-background text-foreground">{children}</body>
+      <body className="h-full bg-background text-foreground">
+        <SwRegister />
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

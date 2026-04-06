@@ -8,6 +8,8 @@ maxTurns: 50
 skills:
   - task-manager-api
   - backend-agent
+  - auth-manager
+  - supabase-postgres-best-practices
   - tanstack-query-best-practices
 ---
 

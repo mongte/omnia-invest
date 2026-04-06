@@ -3,6 +3,8 @@
 # ai
 omnia-invest-*-*.json
 
+scripts/logs/*
+
 # compiled output
 dist
 tmp

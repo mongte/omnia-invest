@@ -6,7 +6,7 @@
     <string>com.omnia.pre-market</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/bin/python3</string>
+        <string>/Users/aimmo-ai-0091/GitHub/omnia-invest/scripts/.venv/bin/python3</string>
         <string>/Users/aimmo-ai-0091/GitHub/omnia-invest/scripts/daily_sync_kiwoom.py</string>
         <string>--job</string>
         <string>pre-market</string>

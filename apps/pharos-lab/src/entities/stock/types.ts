@@ -14,8 +14,10 @@ export interface StockData {
   change: number;
   changeRate: number;
   score: StockScore;
-  rank: number;
-  scoreDescriptions: string[];
+  /** DB: stocks.rank — null 가능 */
+  rank: number | null;
+  /** DB: stock_scores.score_descriptions — null 가능 */
+  scoreDescriptions: string[] | null;
 }
 
 export type DisclosureType = 'earnings' | 'ownership' | 'other';
@@ -41,4 +43,20 @@ export interface OHLCVData {
 export interface RankingHistory {
   date: string;
   [stockId: string]: number | string;
+}
+
+export type LlmSentiment = 'positive' | 'negative' | 'neutral';
+
+/**
+ * LLM이 공시 원문을 분석하여 생성한 요약 데이터.
+ * DB 테이블: public.llm_summaries
+ */
+export interface LlmSummaryData {
+  id: string;
+  disclosureId: string;
+  points: string[];
+  sentiment: LlmSentiment;
+  impact: string;
+  model: string;
+  createdAt: string;
 }

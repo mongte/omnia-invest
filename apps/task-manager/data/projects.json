@@ -10,5 +10,11 @@
     "title": "pharos-lab",
     "color": "orange",
     "icon": "Folder"
+  },
+  {
+    "id": "proj-1775448142187",
+    "title": "pharos-lab-dashboard",
+    "color": "purple",
+    "icon": "Folder"
   }
 ]

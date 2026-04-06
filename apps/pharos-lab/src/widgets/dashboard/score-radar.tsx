@@ -7,13 +7,19 @@ import {
   PolarAngleAxis,
   ResponsiveContainer,
 } from 'recharts';
-import type { StockData } from '@/entities/stock';
+import type { StockScore } from '@/entities/stock';
 
-interface ScoreRadarProps {
-  stock: StockData;
+interface ScoreRadarStock {
+  name: string;
+  score: StockScore;
+  scoreDescriptions?: string[] | null;
 }
 
-const SCORE_LABELS: Record<keyof Omit<StockData['score'], 'total'>, string> = {
+interface ScoreRadarProps {
+  stock: ScoreRadarStock;
+}
+
+const SCORE_LABELS: Record<keyof Omit<StockScore, 'total'>, string> = {
   fundamental: '펀더멘털',
   momentum: '모멘텀',
   disclosure: '공시활동',
@@ -30,8 +36,8 @@ export function ScoreRadar({ stock }: ScoreRadarProps) {
 
   return (
     <div className="flex flex-col gap-3 h-full">
-      <div className="h-[180px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full">
+        <ResponsiveContainer width="100%" height={180}>
           <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
             <PolarGrid stroke="hsl(var(--border))" />
             <PolarAngleAxis
@@ -68,7 +74,7 @@ export function ScoreRadar({ stock }: ScoreRadarProps) {
       </div>
 
       <div className="flex flex-col gap-1 mt-1">
-        {stock.scoreDescriptions.slice(0, 3).map((desc, i) => (
+        {(stock.scoreDescriptions ?? []).slice(0, 3).map((desc, i) => (
           <p key={i} className="text-xs text-muted-foreground leading-relaxed">
             <span className="text-primary mr-1">•</span>
             {desc}

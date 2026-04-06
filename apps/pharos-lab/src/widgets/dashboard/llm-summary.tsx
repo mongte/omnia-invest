@@ -1,13 +1,7 @@
 'use client';
 
-import type { DisclosureEvent } from '@/entities/stock';
+import type { DisclosureEvent, LlmSummaryData } from '@/entities/stock';
 import { cn } from '@/shared/lib/utils';
-
-interface LlmSummaryData {
-  points: string[];
-  sentiment: 'positive' | 'negative' | 'neutral';
-  impact: string;
-}
 
 interface LlmSummaryProps {
   disclosure: DisclosureEvent | null;

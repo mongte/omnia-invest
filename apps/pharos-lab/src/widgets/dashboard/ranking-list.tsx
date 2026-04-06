@@ -1,10 +1,10 @@
 'use client';
 
-import type { StockData } from '@/entities/stock';
+import type { RankingListItem } from '@/shared/api/dashboard';
 import { cn } from '@/shared/lib/utils';
 
 interface RankingListProps {
-  stocks: StockData[];
+  stocks: RankingListItem[];
   selectedStockId: string;
   onSelectStock: (id: string) => void;
 }
@@ -53,12 +53,12 @@ export function RankingList({
             <span
               className={cn(
                 'inline-flex items-center justify-center size-5 rounded text-xs font-bold shrink-0',
-                stock.rank <= 3
+                (stock.rank ?? 0) <= 3
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground'
               )}
             >
-              {stock.rank}
+              {stock.rank ?? '-'}
             </span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">

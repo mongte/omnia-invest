@@ -10,12 +10,13 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
-import type { RankingHistory, StockData } from '@/entities/stock';
+import type { RankingHistory } from '@/entities/stock';
+import type { RankingListItem } from '@/shared/api/dashboard';
 import { cn } from '@/shared/lib/utils';
 
 interface RankingChartProps {
   data: RankingHistory[];
-  stocks: StockData[];
+  stocks: RankingListItem[];
 }
 
 const CHART_COLORS = [
@@ -39,7 +40,7 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: TooltipPayload[];
   label?: string;
-  stocks: StockData[];
+  stocks: RankingListItem[];
 }
 
 function CustomTooltip({ active, payload, label, stocks }: CustomTooltipProps) {
@@ -93,8 +94,8 @@ export function RankingChart({ data, stocks }: RankingChartProps) {
         ))}
       </div>
 
-      <div className="flex-1 min-h-[160px]">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height={200}>
           <LineChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -16 }}>
             <CartesianGrid
               strokeDasharray="3 3"
