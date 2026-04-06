@@ -145,7 +145,8 @@ def insert_to_supabase(records: list[dict], supabase_url: str, service_key: str)
         'Authorization': f'Bearer {service_key}',
         'Content-Type': 'application/json',
         'Prefer': 'resolution=ignore-duplicates,return=minimal',
-        'X-Schema': 'trading',
+        'Accept-Profile': 'trading',
+        'Content-Profile': 'trading',
     }
 
     resp = httpx.post(url, headers=headers, json=records, timeout=60)
@@ -186,7 +187,7 @@ def main():
         'apikey': service_key,
         'Authorization': f'Bearer {service_key}',
         'Accept': 'application/json',
-        'X-Schema': 'trading',
+        'Accept-Profile': 'trading',
     }
     wu_resp = httpx.get(wu_url, headers=wu_headers, timeout=30)
     if wu_resp.status_code != 200:

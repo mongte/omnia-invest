@@ -238,6 +238,13 @@ class StrategyScorer:
 
     # ── public.stock_scores 매핑 ──
 
+    @staticmethod
+    def _safe_int(val: float, default: int = 50) -> int:
+        """NaN/Inf 안전한 int 변환."""
+        if val is None or (isinstance(val, float) and (np.isnan(val) or np.isinf(val))):
+            return default
+        return int(np.clip(val, 0, 100))
+
     def to_public_scores(self, result: ScoreResult) -> dict:
         """ScoreResult를 public.stock_scores 컬럼에 매핑.
 
@@ -245,19 +252,22 @@ class StrategyScorer:
                              disclosure(0~100), institutional(0~100), total(0~100)
         """
         d = result.score_detail
+        f_per = d.get("f_per", 0) or 0
+        f_pbr = d.get("f_pbr", 0) or 0
+        f_roe = d.get("f_roe", 0) or 0
+        fund_avg = (f_per + f_pbr + f_roe) / 3 * 100
+
         return {
             "stock_id": result.stock_code,
-            "fundamental": int(np.clip(
-                (d.get("f_per", 0) + d.get("f_pbr", 0) + d.get("f_roe", 0)) / 3 * 100,
-                0, 100)),
-            "momentum": int(np.clip(d.get("timing_raw", 50), 0, 100)),
-            "disclosure": int(np.clip(d.get("f_event", 50), 0, 100)),
-            "institutional": 50,  # TODO: foreign_ratio 변화 스코어링 추가 시 활성화
-            "total": int(np.clip(result.total_score, 0, 100)),
+            "fundamental": self._safe_int(fund_avg),
+            "momentum": self._safe_int(d.get("timing_raw", 50)),
+            "disclosure": self._safe_int(d.get("f_event", 50)),
+            "institutional": 50,
+            "total": self._safe_int(result.total_score),
             "score_descriptions": [
                 f"시그널: {result.signal}",
-                f"팩터: {d.get('factor_raw', 0):.1f}",
-                f"타이밍: {d.get('timing_raw', 0):.1f}",
-                f"ML확률: {d.get('ml_prob', 0.5):.2f}",
+                f"팩터: {d.get('factor_raw', 0) or 0:.1f}",
+                f"타이밍: {d.get('timing_raw', 0) or 0:.1f}",
+                f"ML확률: {d.get('ml_prob', 0.5) or 0.5:.2f}",
             ],
         }

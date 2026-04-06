@@ -96,12 +96,17 @@ class AnalysisRunner:
             self._finish_run(status="failed", error_message=str(e))
             raise
 
+    # 최소 OHLCV 일수 (MA60 계산 가능 기준)
+    MIN_OHLCV_DAYS = 60
+
     def _analyze_stock(self, stock_code: str) -> ScoreResult | None:
         """종목 1개 분석: 지표 계산 → 스코어링."""
         # OHLCV 지표 계산
         ohlcv = self.ctx.ohlcv.get(stock_code)
         if ohlcv is None or ohlcv.empty:
             return None
+        if len(ohlcv) < self.MIN_OHLCV_DAYS:
+            return None  # 데이터 부족 → 스킵 (NaN 원천 차단)
 
         ohlcv = TechnicalIndicators.compute_all(ohlcv.copy())
         indicators = TechnicalIndicators.snapshot(ohlcv)
