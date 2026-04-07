@@ -238,11 +238,24 @@ class AnalysisRunner:
         resp = self.ctx.client.table("stocks").select("id").execute()
         valid_ids = {row["id"] for row in (resp.data or [])}
 
+        # timing_raw 전체 종목 대비 min-max 정규화 맵 생성
+        timing_values = [
+            r.score_detail.get("timing_raw", 50.0)
+            for r in results
+            if r.score_detail.get("timing_raw") is not None
+        ]
+        t_min = min(timing_values) if timing_values else 0.0
+        t_max = max(timing_values) if timing_values else 100.0
+        t_range = t_max - t_min if t_max != t_min else 1.0
+
         rows = []
         for r in results:
             if r.stock_code not in valid_ids:
                 continue
-            mapped = self.scorer.to_public_scores(r)
+            # timing_raw를 0~100으로 정규화하여 momentum에 매핑
+            raw_timing = r.score_detail.get("timing_raw", 50.0)
+            normalized_momentum = (raw_timing - t_min) / t_range * 100
+            mapped = self.scorer.to_public_scores(r, normalized_momentum=normalized_momentum)
             mapped["scored_at"] = datetime.now().isoformat()
             rows.append(mapped)
 

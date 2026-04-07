@@ -49,25 +49,50 @@ class StrategyScorer:
 
     def factor_score(self, fundamentals: dict, financials: pd.DataFrame,
                      disclosures: pd.DataFrame, stock_code: str) -> dict[str, float]:
-        """Layer 1 서브팩터별 정규화된 점수 산출."""
+        """Layer 1 서브팩터별 정규화된 점수 산출.
+
+        stock_fundamentals가 NULL이면 financial_statements에서 직접 계산(fallback).
+        - ROE = 당기순이익 / 자본총계 * 100
+        - PBR = 시가총액 / 자본총계 (market_cap 필요)
+        - PER = 시가총액 / 당기순이익 (market_cap 필요)
+        """
         scores: dict[str, float] = {}
 
-        # 밸류: PER (역수 정규화 — 낮을수록 고점)
+        # fundamentals가 비어있으면 재무제표에서 fallback 값 계산
         per = fundamentals.get("per")
+        pbr = fundamentals.get("pbr")
+        roe = fundamentals.get("roe")
+
+        # 문자열→float 변환 (키움 API가 문자열로 반환하는 경우 대비)
+        per = self._to_float(per)
+        pbr = self._to_float(pbr)
+        roe = self._to_float(roe)
+
+        # fallback: financial_statements에서 계산
+        if (per is None or pbr is None or roe is None) and not financials.empty:
+            fb = self._calc_fundamentals_from_financials(
+                financials, stock_code, fundamentals.get("market_cap")
+            )
+            if per is None:
+                per = fb.get("per")
+            if pbr is None:
+                pbr = fb.get("pbr")
+            if roe is None:
+                roe = fb.get("roe")
+
+        # 밸류: PER (역수 정규화 — 낮을수록 고점)
         if per is not None and per > 0:
-            scores["per"] = float(1.0 / per)  # 정규화는 유니버스 단위에서
+            scores["per"] = float(1.0 / per)
         else:
             scores["per"] = 0.0
 
         # 밸류: PBR (역수 정규화)
-        pbr = fundamentals.get("pbr")
         if pbr is not None and pbr > 0:
             scores["pbr"] = float(1.0 / pbr)
         else:
             scores["pbr"] = 0.0
 
         # 퀄리티: ROE (높을수록 고점)
-        roe = fundamentals.get("roe")
         scores["roe"] = float(roe) if roe is not None else 0.0
 
         # 퀄리티: 매출성장률 YoY
@@ -77,6 +102,77 @@ class StrategyScorer:
         scores["event"] = self._event_score(disclosures, stock_code)
 
         return scores
+
+    @staticmethod
+    def _to_float(val: object) -> float | None:
+        """문자열/숫자를 float로 변환. 0이나 변환 불가는 None."""
+        if val is None:
+            return None
+        try:
+            f = float(val)
+            return f if f != 0 else None
+        except (ValueError, TypeError):
+            return None
+
+    @staticmethod
+    def _calc_fundamentals_from_financials(
+        financials: pd.DataFrame, stock_code: str, market_cap: object
+    ) -> dict[str, float | None]:
+        """financial_statements에서 ROE/PER/PBR 직접 계산.
+
+        계정과목:
+        - 자본총계: sj_div='BS', account_id='ifrs-full_Equity'
+        - 당기순이익: sj_div='IS', account_id='ifrs-full_ProfitLoss'
+        """
+        result: dict[str, float | None] = {"per": None, "pbr": None, "roe": None}
+
+        stock_fs = financials[financials["stock_code"] == stock_code]
+        if stock_fs.empty:
+            return result
+
+        # 최신 사업연도 기준
+        latest_year = stock_fs["bsns_year"].max()
+        year_fs = stock_fs[stock_fs["bsns_year"] == latest_year]
+
+        # 자본총계 (BS, ifrs-full_Equity)
+        equity_rows = year_fs[
+            (year_fs["sj_div"] == "BS") &
+            (year_fs["account_id"] == "ifrs-full_Equity")
+        ]
+        equity = equity_rows.iloc[0]["current_amount"] if not equity_rows.empty else None
+
+        # 당기순이익 (IS, ifrs-full_ProfitLoss)
+        income_rows = year_fs[
+            (year_fs["sj_div"] == "IS") &
+            (year_fs["account_id"] == "ifrs-full_ProfitLoss")
+        ]
+        net_income = income_rows.iloc[0]["current_amount"] if not income_rows.empty else None
+
+        # ROE 계산
+        if equity and net_income and equity != 0:
+            result["roe"] = round(float(net_income) / float(equity) * 100, 2)
+
+        # PER/PBR: market_cap이 있어야 계산 가능
+        mc = None
+        if market_cap is not None:
+            try:
+                mc = float(market_cap)
+                if mc <= 0:
+                    mc = None
+            except (ValueError, TypeError):
+                mc = None
+
+        if mc and equity and equity > 0:
+            # market_cap 단위가 억원이면 × 1억으로 변환하여 원 단위 맞춤
+            # stock_fundamentals.market_cap은 억원 단위 (키움 API 기준)
+            mc_won = mc * 100_000_000
+            result["pbr"] = round(mc_won / float(equity), 2)
+
+        if mc and net_income and net_income > 0:
+            mc_won = mc * 100_000_000
+            result["per"] = round(mc_won / float(net_income), 2)
+
+        return result
 
     def _revenue_growth(self, financials: pd.DataFrame, stock_code: str) -> float:
         """재무제표에서 매출 YoY 성장률 추출."""
@@ -245,11 +341,16 @@ class StrategyScorer:
             return default
         return int(np.clip(val, 0, 100))
 
-    def to_public_scores(self, result: ScoreResult) -> dict:
+    def to_public_scores(self, result: ScoreResult, *,
+                         normalized_momentum: float | None = None) -> dict:
         """ScoreResult를 public.stock_scores 컬럼에 매핑.
 
         public.stock_scores: fundamental(0~100), momentum(0~100),
                              disclosure(0~100), institutional(0~100), total(0~100)
+
+        Args:
+            normalized_momentum: 전체 유니버스 대비 min-max 정규화된 모멘텀 점수(0~100).
+                runner에서 timing_raw를 정규화하여 전달.
         """
         d = result.score_detail
         f_per = d.get("f_per", 0) or 0
@@ -257,10 +358,13 @@ class StrategyScorer:
         f_roe = d.get("f_roe", 0) or 0
         fund_avg = (f_per + f_pbr + f_roe) / 3 * 100
 
+        # momentum: 정규화된 값 우선, 없으면 기존 timing_raw 사용
+        momentum_score = normalized_momentum if normalized_momentum is not None else d.get("timing_raw", 50)
+
         return {
             "stock_id": result.stock_code,
             "fundamental": self._safe_int(fund_avg),
-            "momentum": self._safe_int(d.get("timing_raw", 50)),
+            "momentum": self._safe_int(momentum_score),
             "disclosure": self._safe_int(d.get("f_event", 50)),
             "institutional": 50,
             "total": self._safe_int(result.total_score),

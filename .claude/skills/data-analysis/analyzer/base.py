@@ -53,8 +53,49 @@ class AnalysisContext:
             self.strategy["params"] = json.loads(self.strategy["params"])
         return self.strategy
 
+    # ETF/ETN 이름 접두사 패턴 (키움 API 거래량급증에 포함되는 비주식 종목)
+    _ETF_ETN_PREFIXES = (
+        "KODEX", "TIGER", "SOL", "ACE", "RISE", "PLUS", "HANARO",
+        "KIWOOM", "BNK", "WON", "TIME", "KoAct", "UNICORN", "1Q", "N2",
+    )
+    _ETN_KEYWORDS = ("ETN", "선물 ETN")
+
+    @staticmethod
+    def _is_etf_etn_or_preferred(row: dict) -> bool:
+        """ETF/ETN/우선주 여부 판별.
+
+        필터링 기준:
+        - 종목코드가 6자리 숫자가 아닌 경우 (알파벳 포함 ETF: 0177N0 등)
+        - 이름이 ETF 운용사 접두사로 시작하는 경우
+        - 이름에 'ETN' 키워드가 포함된 경우
+        - 우선주: 이름이 '우'로 끝나는 경우
+        """
+        import re
+
+        code = row.get("stock_code", "")
+        name = row.get("corp_name", "")
+
+        # 비정규 종목코드 (알파벳 포함)
+        if not re.match(r"^\d{6}$", code):
+            return True
+
+        # ETF: 운용사 이름 접두사
+        for prefix in AnalysisContext._ETF_ETN_PREFIXES:
+            if name.startswith(prefix):
+                return True
+
+        # ETN: 증권사 이름 + 키워드
+        if "ETN" in name:
+            return True
+
+        # 우선주: 이름이 '우'로 끝남
+        if name.endswith("우"):
+            return True
+
+        return False
+
     def load_universe(self) -> pd.DataFrame:
-        """활성 유니버스 종목 목록 로드 (stock_code 중복 제거)."""
+        """활성 유니버스 종목 목록 로드 (stock_code 중복 제거, ETF/ETN/우선주 필터링)."""
         resp = (
             self.client.schema("trading")
             .table("watch_universe")
@@ -65,7 +106,13 @@ class AnalysisContext:
         )
         if resp.data:
             df = pd.DataFrame(resp.data)
-            self.universe = df.drop_duplicates(subset=["stock_code"], keep="first")
+            df = df.drop_duplicates(subset=["stock_code"], keep="first")
+            # ETF/ETN/우선주 제외
+            mask = df.apply(
+                lambda row: not self._is_etf_etn_or_preferred(row.to_dict()),
+                axis=1,
+            )
+            self.universe = df[mask].reset_index(drop=True)
         else:
             self.universe = pd.DataFrame()
         return self.universe
