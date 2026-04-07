@@ -278,6 +278,16 @@ def run_pre_market(token: str, supabase_url: str, service_key: str) -> int:
 
 # --- post-market Job ---
 
+def parse_invsr_int(v: object) -> int:
+    """투자자 순매수 금액 문자열 → int (+/-부호 포함)"""
+    if v is None:
+        return 0
+    try:
+        return int(str(v).strip().replace(',', ''))
+    except (ValueError, TypeError):
+        return 0
+
+
 def run_post_market(token: str, supabase_url: str, service_key: str) -> int:
     """
     장 마감 후:
@@ -353,6 +363,12 @@ def run_post_market(token: str, supabase_url: str, service_key: str) -> int:
         if i < len(stock_codes) - 1:
             time.sleep(DELAY_SEC)
 
+    # 배치 내 중복 제거 (같은 stock_code+market+trade_date → 마지막 값 유지)
+    seen_ohlcv: dict[tuple[str, str, str], int] = {}
+    for idx, rec in enumerate(ohlcv_records):
+        seen_ohlcv[(rec['stock_code'], rec['market'], rec['trade_date'])] = idx
+    ohlcv_records = [ohlcv_records[i] for i in sorted(seen_ohlcv.values())]
+
     if ohlcv_records:
         cnt = supabase_upsert(f'{supabase_url}/rest/v1/ohlcv_daily', service_key, ohlcv_records, on_conflict='stock_code,market,trade_date')
         print(f'  ohlcv_daily UPSERT: {cnt}건')
@@ -394,6 +410,68 @@ def run_post_market(token: str, supabase_url: str, service_key: str) -> int:
     if failed_ohlcv or failed_fund:
         print(f'  실패 (ohlcv): {failed_ohlcv}')
         print(f'  실패 (fund): {failed_fund}')
+
+    # 4. ka10059 투자자기관별 -> investor_trading UPSERT
+    print(f'  [4/4] ka10059 투자자매매동향 {len(stock_codes)}종목...')
+    inv_records: list[dict] = []
+    failed_inv: list[str] = []
+
+    for i, code in enumerate(stock_codes):
+        try:
+            rows = kiwoom_post(token, 'ka10059', '/api/dostk/stkinfo', {
+                'dt': today,
+                'stk_cd': code,
+                'amt_qty_tp': '1',
+                'trde_tp': '0',
+                'unit_tp': '1000',
+            }).get('stk_invsr_orgn', [])
+
+            for r in rows:
+                dt_str = r.get('dt', '').strip()
+                if not dt_str or len(dt_str) != 8:
+                    continue
+                trade_date = f'{dt_str[:4]}-{dt_str[4:6]}-{dt_str[6:8]}'
+                inv_records.append({
+                    'stock_code': code,
+                    'trade_date': trade_date,
+                    'ind_invsr':  parse_invsr_int(r.get('ind_invsr')),
+                    'frgnr_invsr': parse_invsr_int(r.get('frgnr_invsr')),
+                    'orgn':        parse_invsr_int(r.get('orgn')),
+                    'fnnc_invt':   parse_invsr_int(r.get('fnnc_invt')),
+                    'insrnc':      parse_invsr_int(r.get('insrnc')),
+                    'invtrt':      parse_invsr_int(r.get('invtrt')),
+                    'etc_fnnc':    parse_invsr_int(r.get('etc_fnnc')),
+                    'bank':        parse_invsr_int(r.get('bank')),
+                    'penfnd_etc':  parse_invsr_int(r.get('penfnd_etc')),
+                    'samo_fund':   parse_invsr_int(r.get('samo_fund')),
+                    'natn':        parse_invsr_int(r.get('natn')),
+                    'etc_corp':    parse_invsr_int(r.get('etc_corp')),
+                    'natfor':      parse_invsr_int(r.get('natfor')),
+                })
+            print(f'    [{i+1:02d}/{len(stock_codes)}] {code} - {len(rows)}건')
+        except Exception as e:
+            print(f'    [{i+1:02d}/{len(stock_codes)}] ERROR {code}: {e}')
+            failed_inv.append(code)
+
+        if i < len(stock_codes) - 1:
+            time.sleep(DELAY_SEC)
+
+    # 배치 내 중복 제거 (같은 stock_code+trade_date → 마지막 값 유지)
+    seen: dict[tuple[str, str], int] = {}
+    for idx, rec in enumerate(inv_records):
+        seen[(rec['stock_code'], rec['trade_date'])] = idx
+    inv_records = [inv_records[i] for i in sorted(seen.values())]
+
+    if inv_records:
+        cnt = supabase_upsert(
+            f'{supabase_url}/rest/v1/investor_trading', service_key, inv_records,
+            on_conflict='stock_code,trade_date',
+        )
+        print(f'  investor_trading UPSERT: {cnt}건')
+        total_rows += cnt
+
+    if failed_inv:
+        print(f'  실패 (investor): {failed_inv}')
 
     # sync_log
     log_sync(supabase_url, service_key, 'post-market-kiwoom', 'success', total_rows)

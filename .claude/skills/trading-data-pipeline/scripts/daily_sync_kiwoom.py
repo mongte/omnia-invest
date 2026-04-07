@@ -415,6 +415,12 @@ def run_post_market(token: str, supabase_url: str, service_key: str) -> None:
         if i < len(stock_codes) - 1:
             time.sleep(DELAY_SEC)
 
+    # 배치 내 중복 제거 (같은 stock_code+trade_date → 마지막 값 유지)
+    seen: dict[tuple[str, str], int] = {}
+    for idx, rec in enumerate(inv_records):
+        seen[(rec['stock_code'], rec['trade_date'])] = idx
+    inv_records = [inv_records[i] for i in sorted(seen.values())]
+
     if inv_records:
         cnt = supabase_upsert(
             f'{supabase_url}/rest/v1/investor_trading', service_key, inv_records,
