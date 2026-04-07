@@ -299,7 +299,8 @@ class AnalysisRunner:
             # OHLCV에서 최근 종가/변동률 조회
             ohlcv = self.ctx.ohlcv.get(r.stock_code)
             price = int(ohlcv.iloc[-1]["close"]) if ohlcv is not None and not ohlcv.empty else 0
-            change_rate = float(ohlcv.iloc[-1].get("change_rate", 0)) if ohlcv is not None and not ohlcv.empty else 0.0
+            raw_cr = ohlcv.iloc[-1].get("change_rate") if ohlcv is not None and not ohlcv.empty else None
+            change_rate = float(raw_cr) if raw_cr is not None else 0.0
 
             new_rows.append({
                 "id": r.stock_code,
