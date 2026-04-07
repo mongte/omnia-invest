@@ -30,7 +30,7 @@ META_PATH = MODEL_DIR / "lgbm_meta.json"
 
 # ── 피처 엔지니어링 ──
 
-FEATURE_COLS = [
+TECHNICAL_COLS = [
     # 기술적 지표 (indicators.py 산출물)
     "ma5", "ma20", "ma60", "ma120",
     "rsi14", "macd", "macd_signal", "macd_hist",
@@ -41,9 +41,13 @@ FEATURE_COLS = [
     "volume_ratio",  # volume / MA20_volume
     "volatility_20d",  # 20일 롤링 표준편차
     "high_low_range",  # (high - low) / close
-    # 펀더멘털
+]
+
+FUNDAMENTAL_COLS = [
     "per", "pbr", "roe", "foreign_ratio", "market_cap_log",
 ]
+
+FEATURE_COLS = TECHNICAL_COLS + FUNDAMENTAL_COLS
 
 
 def build_features(ohlcv: pd.DataFrame, fundamentals: dict | None = None) -> pd.DataFrame:
@@ -155,12 +159,14 @@ class MLPredictor:
             features = build_features(ohlcv, fund)
             target = build_target(ohlcv, self.lookforward)
 
-            # 유효 행만 추출
-            valid_mask = features[self.feature_cols].notna().all(axis=1) & target.notna()
+            # 유효 행: 기술적 피처는 필수, 펀더멘털은 NaN 허용 (0으로 대체)
+            valid_mask = features[TECHNICAL_COLS].notna().all(axis=1) & target.notna()
             if valid_mask.sum() < 30:
                 continue
 
-            all_X.append(features.loc[valid_mask, self.feature_cols])
+            valid_features = features.loc[valid_mask, self.feature_cols].copy()
+            valid_features[FUNDAMENTAL_COLS] = valid_features[FUNDAMENTAL_COLS].fillna(0)
+            all_X.append(valid_features)
             all_y.append(target[valid_mask])
 
         if not all_X:
@@ -242,9 +248,10 @@ class MLPredictor:
         if features.empty:
             return None
 
-        # 최신 행의 피처
-        last_row = features[self.feature_cols].iloc[-1:]
-        if last_row.isna().any(axis=1).iloc[0]:
+        # 최신 행의 피처 (펀더멘털 NaN은 0으로 대체)
+        last_row = features[self.feature_cols].iloc[-1:].copy()
+        last_row[FUNDAMENTAL_COLS] = last_row[FUNDAMENTAL_COLS].fillna(0)
+        if last_row[TECHNICAL_COLS].isna().any(axis=1).iloc[0]:
             return None
 
         proba = self.model.predict_proba(last_row)[0]
