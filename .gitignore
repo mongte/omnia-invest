@@ -4,6 +4,8 @@
 omnia-invest-*-*.json
 
 scripts/logs/*
+# launchd plist는 install.sh가 template에서 생성 (경로가 머신마다 다름)
+scripts/launchd/com.omnia.*.plist
 
 # compiled output
 dist

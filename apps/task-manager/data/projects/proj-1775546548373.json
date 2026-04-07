@@ -54,10 +54,10 @@
       "id": "task-1775546911005",
       "title": "[FE] CTA 섹션 및 랜딩 페이지 조립",
       "description": "**목표**:\n랜딩 페이지 하단에 최종 행동 유도(CTA) 섹션을 추가하고, 모든 위젯을 views/landing/landing-view.tsx에 조립하여 완성된 랜딩 페이지를 구성한다.\n\n**요구사항**:\n1. widgets/landing/cta-section.tsx 생성\n   - 강조 헤드라인: '지금 바로 퀀트 분석을 시작하세요'\n   - 큰 CTA 버튼: '대시보드 시작하기' -> /dashboard\n   - 배경에 그라디언트 또는 패턴으로 시각적 강조\n2. views/landing/landing-view.tsx 생성 (FSD 구조)\n   - 섹션 조립 순서: Hero -> Features -> DataStats -> Preview -> CTA -> Footer\n   - 각 섹션 간 적절한 간격(py-16 ~ py-24)\n3. views/landing/index.ts 배럴 파일 생성\n4. app/page.tsx에서 LandingView import하여 렌더링\n5. 스크롤 시 부드러운 전환 (scroll-smooth 적용)\n\n**수락 기준**:\n- localhost:3000/ 접속 시 완성된 랜딩 페이지가 표시된다\n- 스크롤 시 Hero -> Features -> DataStats -> Preview -> CTA -> Footer 순서로 섹션이 나타난다\n- 최종 CTA 버튼 클릭 시 /dashboard로 이동한다\n- 전체 페이지 스크롤이 부드럽다 (scroll-behavior: smooth)\n- 모든 섹션 간 시각적 일관성 유지 (디자인 토큰 통일)\n- npx tsc --noEmit 통과\n\n**의존성**:\n- 다른 모든 랜딩 섹션 태스크 완료 후 최종 조립",
-      "status": "IN_PROGRESS",
+      "status": "IN_REVIEW",
       "comments": [],
       "createdAt": "2026-04-07T07:28:31.180Z",
-      "updatedAt": "2026-04-07T07:35:41.982Z",
+      "updatedAt": "2026-04-07T10:38:19.649Z",
       "assigneeId": "agent-fe-1"
     }
   ],

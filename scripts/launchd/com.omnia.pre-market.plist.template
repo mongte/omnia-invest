@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.omnia.pre-market</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PROJECT_ROOT__/scripts/.venv/bin/python3</string>
+        <string>__PROJECT_ROOT__/scripts/daily_sync_kiwoom.py</string>
+        <string>--job</string>
+        <string>pre-market</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <array>
+        <!-- 월~금 07:50 KST -->
+        <dict><key>Weekday</key><integer>1</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>50</integer></dict>
+        <dict><key>Weekday</key><integer>2</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>50</integer></dict>
+        <dict><key>Weekday</key><integer>3</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>50</integer></dict>
+        <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>50</integer></dict>
+        <dict><key>Weekday</key><integer>5</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>50</integer></dict>
+    </array>
+    <key>StandardOutPath</key>
+    <string>__PROJECT_ROOT__/scripts/logs/pre-market.log</string>
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_ROOT__/scripts/logs/pre-market.err</string>
+    <key>WorkingDirectory</key>
+    <string>__PROJECT_ROOT__</string>
+</dict>
+</plist>

@@ -12,10 +12,12 @@ import httpx
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 
 # --- 설정 ---
-AUTH_FILE = '/Users/aimmo-ai-0091/GitHub/omnia-invest/.claude/auth/kiwoom.env'
-SUPABASE_ENV_FILE = '/Users/aimmo-ai-0091/GitHub/omnia-invest/apps/pharos-lab/.env.local'
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+AUTH_FILE = _PROJECT_ROOT / '.claude/auth/kiwoom.env'
+SUPABASE_ENV_FILE = _PROJECT_ROOT / 'apps/pharos-lab/.env.local'
 BASE_URL = 'https://api.kiwoom.com'
 DELAY_SEC = 0.8
 

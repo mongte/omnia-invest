@@ -8,9 +8,10 @@ Discord Webhook 배치 알림 모듈.
 
 import httpx
 from datetime import datetime, timezone
+from pathlib import Path
 
-PROJECT_ROOT = '/Users/aimmo-ai-0091/GitHub/omnia-invest'
-ENV_FILE = f'{PROJECT_ROOT}/.env'
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ENV_FILE = PROJECT_ROOT / '.env'
 
 COLOR_SUCCESS = 3066993   # #2ECC71
 COLOR_ERROR = 15158332    # #E74C3C

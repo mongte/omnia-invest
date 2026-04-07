@@ -1,17 +1,33 @@
 #!/bin/bash
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LAUNCH_DIR="$HOME/Library/LaunchAgents"
-LOG_DIR="$(dirname "$SCRIPT_DIR")/logs"
+LOG_DIR="$PROJECT_ROOT/scripts/logs"
 
 echo "=== Trading Data Pipeline — launchd 설치 ==="
+echo "  PROJECT_ROOT: $PROJECT_ROOT"
 echo ""
 
 # 1. 로그 디렉토리
 mkdir -p "$LOG_DIR"
 echo "📁 로그 디렉토리: $LOG_DIR"
 
-# 2. plist 등록
+# 2. plist 생성 (템플릿에서 경로 치환)
+for name in pre-market post-market; do
+    TEMPLATE="$SCRIPT_DIR/com.omnia.${name}.plist.template"
+    OUTPUT="$SCRIPT_DIR/com.omnia.${name}.plist"
+
+    if [ ! -f "$TEMPLATE" ]; then
+        echo "❌ 템플릿 파일 없음: $TEMPLATE"
+        exit 1
+    fi
+
+    sed "s|__PROJECT_ROOT__|${PROJECT_ROOT}|g" "$TEMPLATE" > "$OUTPUT"
+    echo "✅ com.omnia.${name}.plist 생성"
+done
+
+# 3. plist 등록
 for plist in com.omnia.pre-market.plist com.omnia.post-market.plist; do
     launchctl unload "$LAUNCH_DIR/$plist" 2>/dev/null || true
     ln -sf "$SCRIPT_DIR/$plist" "$LAUNCH_DIR/$plist"
@@ -19,7 +35,7 @@ for plist in com.omnia.pre-market.plist com.omnia.post-market.plist; do
     echo "✅ $plist 등록 완료"
 done
 
-# 3. Mac 자동 기상 설정 (절전 모드에서도 크론 실행되도록)
+# 4. Mac 자동 기상 설정 (절전 모드에서도 크론 실행되도록)
 echo ""
 echo "⏰ Mac 자동 기상 설정 (sudo 권한 필요)"
 echo "  평일 07:45 — pre-market 5분 전"
@@ -41,7 +57,7 @@ else
     echo "   팁: 절전 방지를 위해 시스템 설정 > 에너지 절약 에서 설정하세요"
 fi
 
-# 4. 확인
+# 5. 확인
 echo ""
 echo "=== 등록 확인 ==="
 launchctl list | grep omnia || echo "(등록된 작업 없음)"

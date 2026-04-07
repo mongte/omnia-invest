@@ -15,13 +15,14 @@ import httpx
 import sys
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 from discord_notifier import send_batch_notification
 
 
 # --- 설정 ---
-PROJECT_ROOT = '/Users/aimmo-ai-0091/GitHub/omnia-invest'
-AUTH_FILE = f'{PROJECT_ROOT}/.claude/auth/kiwoom.env'
-SUPABASE_ENV_FILE = f'{PROJECT_ROOT}/apps/pharos-lab/.env.local'
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+AUTH_FILE = PROJECT_ROOT / '.claude/auth/kiwoom.env'
+SUPABASE_ENV_FILE = PROJECT_ROOT / 'apps/pharos-lab/.env.local'
 BASE_URL = 'https://api.kiwoom.com'
 DELAY_SEC = 0.8  # 200종목 대응: 0.5→0.8초 (rate limit 안전 마진)
 TOP_N = 200
