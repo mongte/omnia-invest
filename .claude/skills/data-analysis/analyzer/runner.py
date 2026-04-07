@@ -244,45 +244,44 @@ class AnalysisRunner:
         resp = self.ctx.client.table("stocks").select("id").execute()
         valid_ids = {row["id"] for row in (resp.data or [])}
 
-        # timing_raw 전체 종목 대비 min-max 정규화 맵 생성
-        timing_values = [
-            r.score_detail.get("timing_raw", 50.0)
-            for r in results
-            if r.score_detail.get("timing_raw") is not None
-        ]
-        t_min = min(timing_values) if timing_values else 0.0
-        t_max = max(timing_values) if timing_values else 100.0
-        t_range = t_max - t_min if t_max != t_min else 1.0
+        # percentile rank 정규화 맵 생성 (이상치에 강건)
+        valid_results = [r for r in results if r.stock_code in valid_ids]
+        if not valid_results:
+            return
+
+        timing_vals = [r.score_detail.get("timing_raw", 50.0) for r in valid_results]
+        factor_vals = [r.score_detail.get("factor_raw", 0.0) for r in valid_results]
+
+        timing_ranks = self._percentile_rank(timing_vals)
+        factor_ranks = self._percentile_rank(factor_vals)
 
         rows = []
-        for r in results:
-            if r.stock_code not in valid_ids:
-                continue
-            # timing_raw를 0~100으로 정규화하여 momentum에 매핑
-            raw_timing = r.score_detail.get("timing_raw", 50.0)
-            normalized_momentum = (raw_timing - t_min) / t_range * 100
-            mapped = self.scorer.to_public_scores(r, normalized_momentum=normalized_momentum)
+        for i, r in enumerate(valid_results):
+            mapped = self.scorer.to_public_scores(
+                r,
+                normalized_momentum=timing_ranks[i],
+                normalized_fundamental=factor_ranks[i],
+            )
             mapped["scored_at"] = datetime.now().isoformat()
             rows.append(mapped)
 
-        if not rows:
-            return
+        # 전체 stock_scores 교체 (이전 run의 잔존 데이터 제거)
+        self.ctx.client.table("stock_scores").delete().neq(
+            "stock_id", ""
+        ).execute()
+        self.ctx.client.table("stock_scores").insert(rows).execute()
 
-        # stock_id 기준 delete → insert
-        stock_ids = [row["stock_id"] for row in rows]
-        (
-            self.ctx.client
-            .table("stock_scores")
-            .delete()
-            .in_("stock_id", stock_ids)
-            .execute()
-        )
-        (
-            self.ctx.client
-            .table("stock_scores")
-            .insert(rows)
-            .execute()
-        )
+    @staticmethod
+    def _percentile_rank(values: list[float]) -> list[float]:
+        """값 리스트를 0~100 percentile rank로 변환."""
+        n = len(values)
+        if n <= 1:
+            return [50.0] * n
+        indexed = sorted(enumerate(values), key=lambda x: x[1])
+        ranks = [0.0] * n
+        for rank_pos, (orig_idx, _) in enumerate(indexed):
+            ranks[orig_idx] = rank_pos / (n - 1) * 100
+        return ranks
 
     def _ensure_public_stocks(self, results: list[ScoreResult],
                               existing_ids: set[str]) -> None:

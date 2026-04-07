@@ -342,28 +342,26 @@ class StrategyScorer:
         return int(np.clip(val, 0, 100))
 
     def to_public_scores(self, result: ScoreResult, *,
-                         normalized_momentum: float | None = None) -> dict:
+                         normalized_momentum: float | None = None,
+                         normalized_fundamental: float | None = None) -> dict:
         """ScoreResult를 public.stock_scores 컬럼에 매핑.
 
         public.stock_scores: fundamental(0~100), momentum(0~100),
                              disclosure(0~100), institutional(0~100), total(0~100)
 
         Args:
-            normalized_momentum: 전체 유니버스 대비 min-max 정규화된 모멘텀 점수(0~100).
-                runner에서 timing_raw를 정규화하여 전달.
+            normalized_momentum: percentile rank 정규화된 모멘텀 점수(0~100).
+            normalized_fundamental: percentile rank 정규화된 펀더멘털 점수(0~100).
         """
         d = result.score_detail
-        f_per = d.get("f_per", 0) or 0
-        f_pbr = d.get("f_pbr", 0) or 0
-        f_roe = d.get("f_roe", 0) or 0
-        fund_avg = (f_per + f_pbr + f_roe) / 3 * 100
 
-        # momentum: 정규화된 값 우선, 없으면 기존 timing_raw 사용
+        # fundamental/momentum: percentile rank 정규화 값 사용
+        fund_score = normalized_fundamental if normalized_fundamental is not None else 50.0
         momentum_score = normalized_momentum if normalized_momentum is not None else d.get("timing_raw", 50)
 
         return {
             "stock_id": result.stock_code,
-            "fundamental": self._safe_int(fund_avg),
+            "fundamental": self._safe_int(fund_score),
             "momentum": self._safe_int(momentum_score),
             "disclosure": self._safe_int(d.get("f_event", 50)),
             "institutional": 50,
