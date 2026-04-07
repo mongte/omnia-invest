@@ -141,9 +141,9 @@ class StrategyScorer:
         ]
         equity = equity_rows.iloc[0]["current_amount"] if not equity_rows.empty else None
 
-        # 당기순이익 (IS, ifrs-full_ProfitLoss)
+        # 당기순이익 (IS 또는 CIS, ifrs-full_ProfitLoss)
         income_rows = year_fs[
-            (year_fs["sj_div"] == "IS") &
+            (year_fs["sj_div"].isin(["IS", "CIS"])) &
             (year_fs["account_id"] == "ifrs-full_ProfitLoss")
         ]
         net_income = income_rows.iloc[0]["current_amount"] if not income_rows.empty else None

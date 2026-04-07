@@ -234,7 +234,13 @@ class AnalysisRunner:
 
     def _sync_public_scores(self, results: list[ScoreResult]) -> None:
         """public.stock_scores UPSERT. 대시보드에서 바로 조회 가능."""
-        # public.stocks에 존재하는 종목만 필터 (FK 제약)
+        # public.stocks에 존재하는 종목 확인
+        resp = self.ctx.client.table("stocks").select("id").execute()
+        valid_ids = {row["id"] for row in (resp.data or [])}
+
+        # public.stocks에 없는 종목 자동 추가 (FK 제약 해소)
+        self._ensure_public_stocks(results, valid_ids)
+        # 추가 후 valid_ids 갱신
         resp = self.ctx.client.table("stocks").select("id").execute()
         valid_ids = {row["id"] for row in (resp.data or [])}
 
@@ -277,6 +283,40 @@ class AnalysisRunner:
             .insert(rows)
             .execute()
         )
+
+    def _ensure_public_stocks(self, results: list[ScoreResult],
+                              existing_ids: set[str]) -> None:
+        """public.stocks에 없는 분석 종목을 자동 추가."""
+        new_rows = []
+        for r in results:
+            if r.stock_code in existing_ids:
+                continue
+            # universe에서 종목 정보 조회
+            uni_row = self.ctx.universe[
+                self.ctx.universe["stock_code"] == r.stock_code
+            ]
+            name = uni_row.iloc[0]["corp_name"] if not uni_row.empty else r.stock_code
+            # OHLCV에서 최근 종가/변동률 조회
+            ohlcv = self.ctx.ohlcv.get(r.stock_code)
+            price = int(ohlcv.iloc[-1]["close"]) if ohlcv is not None and not ohlcv.empty else 0
+            change_rate = float(ohlcv.iloc[-1].get("change_rate", 0)) if ohlcv is not None and not ohlcv.empty else 0.0
+
+            new_rows.append({
+                "id": r.stock_code,
+                "code": r.stock_code,
+                "name": name,
+                "market": "KOSPI",
+                "price": price,
+                "change": 0,
+                "change_rate": change_rate,
+                "rank": r.rank,
+            })
+            existing_ids.add(r.stock_code)
+
+        if new_rows:
+            self.ctx.client.table("stocks").upsert(
+                new_rows, on_conflict="id"
+            ).execute()
 
     def _sync_ranking_history(self, results: list[ScoreResult],
                               run_date: date) -> None:
