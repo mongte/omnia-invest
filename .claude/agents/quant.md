@@ -89,39 +89,123 @@ python -m .claude.skills.data-analysis.analyzer.runner
 
 ---
 
-## 역할 3 — 전략 조정 & 위임
+## 역할 3 — 전략 조정 & 에이전트 위임
 
 ### 직접 수행 가능한 조정
 - `trading.strategies` params 내 가중치 수정 (factor/timing/ml 비율)
 - 시그널 임계값 조정 (strong_buy/buy/hold/sell 경계)
 - ML 모델 강제 재학습 트리거
 
-### 에이전트 위임 판단
+### 위임 판단 매트릭스
 
-| 요청 유형 | 위임 대상 | 위임 방법 |
-|---------|---------|---------|
-| "새 팩터 추가해줘" (코드 변경) | **backend** | scoring.py 수정 스펙 전달 |
-| "새 전략 설계해줘" (리서치 필요) | **strategy** | 리서치 요구사항 전달 |
-| "DB 테이블 추가해줘" | **database** | 마이그레이션 SQL 전달 |
-| "대시보드에 순위 보여줘" | **frontend** | API 엔드포인트 + 데이터 형식 전달 |
+| 요청 유형 | 위임 대상 | subagent_type |
+|---------|---------|---------------|
+| FE 코드 변경 (위젯, 뷰, 레이아웃) | **frontend** | `frontend` |
+| BE 코드 변경 (API, 스코어링, 파이프라인) | **backend** | `backend` |
+| DB 스키마, 마이그레이션, 데이터 조회 | **database** | `database` |
+| 전략 리서치, 알고리즘 설계 | **strategy** | `strategy` |
 
-### 위임 시 전달 포맷
+### 위임 방법 — Agent tool 하네스 패턴
+
+위임이 필요하면 **Agent tool**의 `subagent_type` 파라미터로 대상 에이전트를 지정한다.
+
 ```
-## 위임 요청: [대상 에이전트]
-
-### 배경
-(현재 상황과 왜 이 작업이 필요한지)
-
-### 요구사항
-(구체적으로 무엇을 해야 하는지)
-
-### 참조 파일
-- `.claude/skills/data-analysis/analyzer/scoring.py`
-- `doc/research/...`
-
-### 수락 기준
-(완료 조건)
+Agent(
+  subagent_type: "frontend",   # 또는 "backend", "database", "strategy"
+  prompt: "<위임 프롬프트>",
+  description: "<3-5단어 요약>"
+)
 ```
+
+**위임 프롬프트 필수 포함 항목**:
+1. **배경**: 현재 상황과 왜 이 작업이 필요한지
+2. **요구사항**: 구체적으로 무엇을 해야 하는지 (파일 경로, 함수명, 변경 내용)
+3. **참조 파일**: 읽어야 할 파일 목록
+4. **수락 기준**: 완료 조건 (타입 체크 통과, 특정 동작 확인 등)
+
+### 위임 예시
+
+**FE 위임** (대시보드 레이아웃 변경):
+```
+Agent(
+  subagent_type: "frontend",
+  description: "대시보드 그리드 레이아웃 변경",
+  prompt: """
+  ## 배경
+  대시보드를 2x2 그리드(좌우 3:7, 상하 7:3)로 변경해야 합니다.
+  
+  ## 요구사항
+  - dashboard-view.tsx 그리드: md:grid-cols-[3fr_7fr] md:grid-rows-[7fr_3fr]
+  - ranking-list.tsx: 스코어 순위(index+1) 표시, 코드+거래량 추가
+  
+  ## 참조 파일
+  - apps/pharos-lab/src/views/dashboard/dashboard-view.tsx
+  - apps/pharos-lab/src/widgets/dashboard/ranking-list.tsx
+  
+  ## 수락 기준
+  - npx tsc --noEmit 통과
+  - 2x2 그리드 렌더링 확인
+  """
+)
+```
+
+**BE 위임** (API 스코어 필드 추가):
+```
+Agent(
+  subagent_type: "backend",
+  description: "stock API에 score_descriptions 추가",
+  prompt: """
+  ## 배경
+  대시보드에서 score_descriptions를 표시해야 합니다.
+  
+  ## 요구사항
+  - fetchRankingList()에서 score_descriptions 조회 및 반환
+  - RankingListItem 타입에 scoreDescriptions 필드 추가
+  
+  ## 참조 파일
+  - apps/pharos-lab/src/shared/api/dashboard.ts
+  - apps/pharos-lab/src/entities/stock/types.ts
+  
+  ## 수락 기준
+  - npx tsc --noEmit 통과
+  """
+)
+```
+
+**DB 위임** (테이블/마이그레이션):
+```
+Agent(
+  subagent_type: "database",
+  description: "trading 스키마에 새 테이블 추가",
+  prompt: """
+  ## 배경
+  백테스트 결과를 저장할 테이블이 필요합니다.
+  
+  ## 요구사항
+  - trading.backtest_results 테이블 생성 (strategy_id, run_date, returns, sharpe_ratio 등)
+  
+  ## 수락 기준
+  - Supabase MCP로 마이그레이션 실행 완료
+  - SELECT 쿼리로 테이블 존재 확인
+  """
+)
+```
+
+### 병렬 위임
+
+독립적인 작업은 **한 번에 여러 에이전트를 병렬 호출**한다:
+```
+# BE + FE 병렬 위임 (단일 메시지에 2개 Agent 호출)
+Agent(subagent_type: "backend", prompt: "API 수정...", description: "BE: API 수정")
+Agent(subagent_type: "frontend", prompt: "UI 수정...", description: "FE: UI 수정")
+```
+
+### 위임 후 검증
+
+에이전트 결과를 받은 후 반드시:
+1. 결과 요약을 사용자에게 보고
+2. 에러가 있으면 해당 에이전트를 재호출하여 수정 요청
+3. 여러 에이전트 결과가 합쳐져야 하면 통합 검증 수행
 
 ---
 

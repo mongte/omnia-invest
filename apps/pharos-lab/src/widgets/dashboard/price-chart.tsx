@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useRef, forwardRef } from 'react';
 import type { ISeriesMarkersPluginApi, Time } from 'lightweight-charts';
 import type { OHLCVData, DisclosureEvent } from '@/entities/stock';
+import { getDisclosureSentiment } from '@/shared/api/dashboard';
 
 interface PriceChartProps {
   ohlcv: OHLCVData[];
@@ -11,11 +12,19 @@ interface PriceChartProps {
   onSelectDisclosure: (id: string) => void;
 }
 
-const IMPORTANCE_COLORS: Record<DisclosureEvent['importance'], string> = {
-  high: '#ef4444',
-  medium: '#eab308',
-  low: '#6b7280',
-};
+export interface PriceChartHandle {
+  /** 특정 공시 날짜로 차트를 스크롤합니다 */
+  scrollToDisclosure: (disclosureId: string) => void;
+}
+
+/** 공시 sentiment → 마커 색상 */
+function getMarkerColor(disc: DisclosureEvent, isSelected: boolean): string {
+  if (isSelected) return '#60a5fa';
+  const sentiment = getDisclosureSentiment(disc.type, disc.importance);
+  if (sentiment === 'positive') return '#22c55e';
+  if (sentiment === 'negative') return '#ef4444';
+  return '#6b7280';
+}
 
 type IChartApi = Awaited<typeof import('lightweight-charts')>['createChart'] extends (
   ...args: Parameters<Awaited<typeof import('lightweight-charts')>['createChart']>
@@ -23,27 +32,41 @@ type IChartApi = Awaited<typeof import('lightweight-charts')>['createChart'] ext
   ? R
   : never;
 
-export function PriceChart({
-  ohlcv,
-  disclosures,
-  selectedDisclosureId,
-  onSelectDisclosure,
-}: PriceChartProps) {
+export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
+  function PriceChart(
+    { ohlcv, disclosures, selectedDisclosureId, onSelectDisclosure },
+    ref
+  ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const onSelectRef = useRef(onSelectDisclosure);
   onSelectRef.current = onSelectDisclosure;
 
+  // ohlcv 날짜 → index 맵 (스크롤 계산용)
+  const ohlcvDateIndexRef = useRef<Map<string, number>>(new Map());
+
   const scrollToDisclosure = useCallback(
     (disclosureId: string) => {
       const disc = disclosures.find((d) => d.id === disclosureId);
       if (!disc || !chartRef.current) return;
-      chartRef.current.timeScale().scrollToPosition(0, false);
-      chartRef.current.timeScale().scrollToRealTime();
+
+      const dateIndex = ohlcvDateIndexRef.current.get(disc.date);
+      if (dateIndex === undefined) return;
+
+      // 전체 ohlcv 길이 기준으로 끝에서 몇 칸 앞인지 계산
+      const totalBars = ohlcvDateIndexRef.current.size;
+      // scrollToPosition: 양수 = 오른쪽(최신), 음수 = 왼쪽(과거)
+      // 0 = 마지막 바가 오른쪽 끝에 정렬된 기준
+      const barsFromEnd = totalBars - 1 - dateIndex;
+      const offset = -(barsFromEnd - 5); // 해당 날짜를 차트 우측에서 5칸 여유 두고 표시
+      chartRef.current.timeScale().scrollToPosition(offset, true);
     },
     [disclosures]
   );
+
+  // 외부에서 scrollToDisclosure 호출 가능하도록 ref 노출
+  useImperativeHandle(ref, () => ({ scrollToDisclosure }), [scrollToDisclosure]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -89,6 +112,11 @@ export function PriceChart({
           wickDownColor: 'hsl(0 72% 51%)',
         });
 
+        // ohlcv 날짜 인덱스 맵 구성
+        const dateIndexMap = new Map<string, number>();
+        ohlcv.forEach((d, i) => dateIndexMap.set(d.time, i));
+        ohlcvDateIndexRef.current = dateIndexMap;
+
         series.setData(
           ohlcv.map((d) => ({
             time: d.time as import('lightweight-charts').Time,
@@ -99,13 +127,13 @@ export function PriceChart({
           }))
         );
 
-        // 공시 마커 생성
+        // 공시 마커 생성 (호재/악재/중립 색상)
         const markers = disclosures.map((disc) => ({
           time: disc.date as import('lightweight-charts').Time,
           position: 'aboveBar' as const,
-          color: IMPORTANCE_COLORS[disc.importance],
+          color: getMarkerColor(disc, disc.id === selectedDisclosureId),
           shape: 'arrowDown' as const,
-          text: disc.id === selectedDisclosureId ? '▼' : '',
+          text: '',
           id: disc.id,
         }));
 
@@ -136,17 +164,14 @@ export function PriceChart({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ohlcv]);
 
-  // 마커 업데이트 (공시 선택 변경 시)
+  // 마커 업데이트 (공시 선택 변경 시 — 호재/악재/중립/선택 색상)
   useEffect(() => {
     if (!markersPluginRef.current) return;
 
     const markers = disclosures.map((disc) => ({
       time: disc.date as import('lightweight-charts').Time,
       position: 'aboveBar' as const,
-      color:
-        disc.id === selectedDisclosureId
-          ? '#60a5fa'
-          : IMPORTANCE_COLORS[disc.importance],
+      color: getMarkerColor(disc, disc.id === selectedDisclosureId),
       shape: 'arrowDown' as const,
       text: '',
       id: disc.id,
@@ -162,4 +187,4 @@ export function PriceChart({
       aria-label="주가 캔들스틱 차트"
     />
   );
-}
+});

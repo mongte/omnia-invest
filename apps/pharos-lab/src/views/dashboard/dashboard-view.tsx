@@ -1,22 +1,17 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   RankingList,
   ScoreRadar,
-  RankingChart,
   DisclosureTimeline,
-  LlmSummary,
   PriceChart,
 } from '@/widgets/dashboard';
+import type { PriceChartHandle } from '@/widgets/dashboard/price-chart';
 import { Skeleton } from '@/shared/ui';
 import type { RankingListItem } from '@/shared/api/dashboard';
-import {
-  fetchStockDetailClient,
-  fetchRankingHistoryClient,
-} from '@/shared/api/dashboard-client';
-import type { RankingHistory } from '@/entities/stock';
+import { fetchStockDetailClient } from '@/shared/api/dashboard-client';
 
 interface DashboardViewProps {
   initialStocks: RankingListItem[];
@@ -147,24 +142,6 @@ function ScoreRadarSkeleton() {
   );
 }
 
-function RankingChartSkeleton() {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex gap-1">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-5 w-8 rounded" />
-        ))}
-      </div>
-      <Skeleton className="flex-1 min-h-[160px] rounded-lg" />
-      <div className="flex gap-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-3 w-16" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function DisclosureTimelineSkeleton() {
   return (
     <div className="flex flex-col gap-1">
@@ -185,24 +162,6 @@ function DisclosureTimelineSkeleton() {
   );
 }
 
-function LlmSummarySkeleton() {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex justify-between gap-2">
-        <Skeleton className="h-4 flex-1" />
-        <Skeleton className="h-5 w-12 shrink-0 rounded" />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Skeleton className="h-3 w-16" />
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-3 w-full" />
-        ))}
-      </div>
-      <Skeleton className="h-16 w-full rounded-md mt-auto" />
-    </div>
-  );
-}
-
 function PriceChartSkeleton() {
   return <Skeleton className="w-full h-full min-h-[200px] rounded-lg" />;
 }
@@ -217,6 +176,9 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
   const [selectedStockId, setSelectedStockId] = useState<string>(defaultStockId);
   const [selectedDisclosureId, setSelectedDisclosureId] = useState<string | null>(null);
 
+  // 차트 스크롤 연동용 ref
+  const priceChartRef = useRef<PriceChartHandle>(null);
+
   // 선택 종목 상세 데이터 — useQuery로 전환
   // initialData를 활용하여 초기 종목은 서버 props 데이터를 즉시 표시
   const {
@@ -230,37 +192,6 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
     staleTime: 5 * 60 * 1000, // 5분: 동일 종목 재클릭 시 네트워크 요청 없음
   });
 
-  // 상위 5종목 랭킹 이력 — useQueries로 전환
-  const top5 = useMemo(() => initialStocks.slice(0, 5), [initialStocks]);
-
-  const rankingHistoryQueries = useQueries({
-    queries: top5.map((stock) => ({
-      queryKey: stockKeys.rankingHistory(stock.id),
-      queryFn: () => fetchRankingHistoryClient(stock.id, 30),
-      staleTime: 5 * 60 * 1000,
-    })),
-  });
-
-  // 랭킹 이력 날짜별 병합 (useQueries 결과 집계)
-  const rankingHistory = useMemo<RankingHistory[]>(() => {
-    const allLoaded = rankingHistoryQueries.every((q) => q.data !== undefined);
-    if (!allLoaded) return [];
-
-    const mergedMap = new Map<string, RankingHistory>();
-    rankingHistoryQueries.forEach((query, idx) => {
-      const stockId = top5[idx]?.id;
-      if (!stockId || !query.data) return;
-      query.data.forEach((row) => {
-        const existing = mergedMap.get(row.date) ?? { date: row.date };
-        existing[stockId] = row[stockId] as number;
-        mergedMap.set(row.date, existing);
-      });
-    });
-    return Array.from(mergedMap.values()).sort((a, b) => (a.date < b.date ? -1 : 1));
-  }, [rankingHistoryQueries, top5]);
-
-  const isLoadingRanking = rankingHistoryQueries.some((q) => q.isLoading);
-  const rankingQueryError = rankingHistoryQueries.find((q) => q.error)?.error;
 
   // 에러 메시지 변환
   const detailError = detailQueryError
@@ -269,15 +200,14 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
       : '데이터를 불러올 수 없습니다.'
     : null;
 
-  const rankingError = rankingQueryError
-    ? rankingQueryError instanceof Error
-      ? rankingQueryError.message
-      : '랭킹 이력을 불러올 수 없습니다.'
-    : null;
-
   function handleSelectStock(id: string) {
     setSelectedStockId(id);
     setSelectedDisclosureId(null);
+  }
+
+  /** 공시 선택 + 차트 스크롤 연동 */
+  function handleScrollToDisclosure(disclosureId: string) {
+    priceChartRef.current?.scrollToDisclosure(disclosureId);
   }
 
   // 현재 선택된 종목 정보: 상세 데이터 우선, 없으면 initialStocks에서 조회
@@ -289,24 +219,14 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
 
   const disclosures = detailData?.disclosures ?? [];
   const ohlcv = detailData?.ohlcv ?? [];
-  const llmSummaries = detailData?.llmSummaries ?? [];
-
-  // 선택된 공시에 해당하는 LLM 요약 찾기
-  const selectedDisclosure = selectedDisclosureId
-    ? (disclosures.find((d) => d.id === selectedDisclosureId) ?? null)
-    : null;
-  const selectedSummary = selectedDisclosureId
-    ? (llmSummaries.find((s) => s.disclosureId === selectedDisclosureId) ?? null)
-    : null;
 
   const displayStockName = displayStock?.name ?? '';
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 h-full auto-rows-[minmax(280px,auto)]">
-      {/* ① 종목 랭킹 리스트 — 좌상단, 2행 span */}
+    <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-4 h-full md:grid-rows-[7fr_3fr]">
+      {/* ① 종목 랭킹 — 좌상단 */}
       <WidgetCard
-        title="스코어 기반 종목 랭킹"
-        className="md:row-span-2"
+        title="종목 랭킹"
         isLoading={initialStocks.length === 0}
         loadingSkeleton={<RankingListSkeleton />}
       >
@@ -317,27 +237,27 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
         />
       </WidgetCard>
 
-      {/* ② 스코어 설명 패널 — 우상단 */}
+      {/* ② 스코어 분석 — 우상단 */}
       <WidgetCard
         title={`${displayStockName} 스코어 분석`}
         isLoading={isLoadingDetail}
         error={detailError}
         loadingSkeleton={<ScoreRadarSkeleton />}
       >
-        {displayStock ? <ScoreRadar stock={displayStock} /> : null}
+        {displayStock ? (
+          <ScoreRadar
+            stock={{
+              ...displayStock,
+              scoreDescriptions:
+                detailData?.stock.scoreDescriptions ??
+                displayStock.scoreDescriptions ??
+                null,
+            }}
+          />
+        ) : null}
       </WidgetCard>
 
-      {/* ③ 랭킹 변동 차트 — 우상단 */}
-      <WidgetCard
-        title="데일리 랭킹 변동"
-        isLoading={isLoadingRanking}
-        error={rankingError}
-        loadingSkeleton={<RankingChartSkeleton />}
-      >
-        <RankingChart data={rankingHistory} stocks={initialStocks} />
-      </WidgetCard>
-
-      {/* ④ 종목 타임라인 — 좌하단 */}
+      {/* ③ 공시 타임라인 — 좌하단 */}
       <WidgetCard
         title={`${displayStockName} 공시 타임라인`}
         isLoading={isLoadingDetail}
@@ -348,28 +268,19 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
           disclosures={disclosures}
           selectedDisclosureId={selectedDisclosureId}
           onSelectDisclosure={setSelectedDisclosureId}
+          onScrollToDisclosure={handleScrollToDisclosure}
         />
       </WidgetCard>
 
-      {/* ⑤ LLM 이슈 요약 패널 — 중하단 */}
-      <WidgetCard
-        title="AI 공시 요약"
-        isLoading={isLoadingDetail}
-        error={detailError}
-        loadingSkeleton={<LlmSummarySkeleton />}
-      >
-        <LlmSummary disclosure={selectedDisclosure} summary={selectedSummary} />
-      </WidgetCard>
-
-      {/* ⑥ 주가 차트 + 공시 오버레이 — 우하단 */}
+      {/* ④ 주가 차트 — 우하단 */}
       <WidgetCard
         title={`${displayStockName} 주가 차트`}
-        className="col-span-3"
         isLoading={isLoadingDetail}
         error={detailError}
         loadingSkeleton={<PriceChartSkeleton />}
       >
         <PriceChart
+          ref={priceChartRef}
           ohlcv={ohlcv}
           disclosures={disclosures}
           selectedDisclosureId={selectedDisclosureId}

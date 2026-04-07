@@ -11,6 +11,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseServer } from '@/shared/api/supabase-server';
 import type { RankingListItem } from '@/shared/api/dashboard';
+import type { RankChange } from '@/entities/stock/types';
 
 const CACHE_CONTROL = 'public, s-maxage=300, stale-while-revalidate=600';
 
@@ -29,33 +30,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const supabase = getSupabaseServer();
 
-    const { data: stocks, error: stocksError } = await supabase
-      .from('stocks')
-      .select('id, code, name, price, change, change_rate, rank')
-      .not('rank', 'is', null)
-      .order('rank', { ascending: true })
-      .limit(limit);
-
-    if (stocksError) {
-      console.error('[GET /api/stocks] stocks error:', stocksError.message);
-      return NextResponse.json(
-        { error: 'Failed to fetch stocks' },
-        { status: 500 },
-      );
-    }
-
-    if (!stocks || stocks.length === 0) {
-      return NextResponse.json([], {
-        headers: { 'Cache-Control': CACHE_CONTROL },
-      });
-    }
-
-    const stockIds = stocks.map((s) => s.id);
-
+    // stock_scores.total 내림차순 정렬 후 상위 N개 stock_id 획득
     const { data: scores, error: scoresError } = await supabase
       .from('stock_scores')
-      .select('stock_id, fundamental, momentum, disclosure, institutional, total')
-      .in('stock_id', stockIds);
+      .select('stock_id, fundamental, momentum, disclosure, institutional, total, score_descriptions')
+      .order('total', { ascending: false })
+      .limit(limit);
 
     if (scoresError) {
       console.error('[GET /api/stocks] scores error:', scoresError.message);
@@ -65,35 +45,86 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const scoreMap = new Map(
-      (scores ?? []).map((s) => [
-        s.stock_id,
-        {
-          fundamental: s.fundamental,
-          momentum: s.momentum,
-          disclosure: s.disclosure,
-          institutional: s.institutional,
-          total: s.total,
-        },
-      ]),
+    if (!scores || scores.length === 0) {
+      return NextResponse.json([], {
+        headers: { 'Cache-Control': CACHE_CONTROL },
+      });
+    }
+
+    const stockIds = scores.map((s) => s.stock_id);
+
+    const [stocksResult, historyResult] = await Promise.all([
+      supabase
+        .from('stocks')
+        .select('id, code, name, price, change, change_rate, rank')
+        .in('id', stockIds),
+      supabase
+        .from('ranking_history')
+        .select('stock_id, rank_date, rank')
+        .in('stock_id', stockIds)
+        .order('rank_date', { ascending: false })
+        .limit(stockIds.length * 2),
+    ]);
+
+    if (stocksResult.error) {
+      console.error('[GET /api/stocks] stocks error:', stocksResult.error.message);
+      return NextResponse.json(
+        { error: 'Failed to fetch stocks' },
+        { status: 500 },
+      );
+    }
+
+    const stockMap = new Map(
+      (stocksResult.data ?? []).map((s) => [s.id, s]),
     );
 
-    const result: RankingListItem[] = stocks.map((s) => ({
-      id: s.id,
-      code: s.code,
-      name: s.name,
-      price: s.price,
-      change: s.change,
-      changeRate: s.change_rate,
-      rank: s.rank,
-      score: scoreMap.get(s.id) ?? {
-        fundamental: 0,
-        momentum: 0,
-        disclosure: 0,
-        institutional: 0,
-        total: 0,
-      },
-    }));
+    // 전일 순위 맵 구성
+    const historyRows = historyResult.data ?? [];
+    const byStock = new Map<string, Array<{ rank_date: string; rank: number }>>();
+    for (const row of historyRows) {
+      const existing = byStock.get(row.stock_id) ?? [];
+      existing.push({ rank_date: row.rank_date, rank: row.rank });
+      byStock.set(row.stock_id, existing);
+    }
+    const prevRankMap = new Map<string, number | null>();
+    for (const [stockId, rows] of byStock.entries()) {
+      rows.sort((a, b) => (a.rank_date > b.rank_date ? -1 : 1));
+      prevRankMap.set(stockId, rows[1]?.rank ?? null);
+    }
+
+    // scores 순서(total 내림차순) 유지
+    const result: RankingListItem[] = [];
+    for (const score of scores) {
+      const stockRow = stockMap.get(score.stock_id);
+      if (!stockRow) continue;
+
+      const prevRank = prevRankMap.get(score.stock_id) ?? null;
+      const currentRank = stockRow.rank;
+      const delta =
+        prevRank !== null && currentRank !== null ? prevRank - currentRank : null;
+      const rankChange: RankChange | null =
+        prevRank !== null ? { previousRank: prevRank, delta } : null;
+
+      result.push({
+        id: stockRow.id,
+        code: stockRow.code,
+        name: stockRow.name,
+        price: stockRow.price,
+        change: stockRow.change,
+        changeRate: stockRow.change_rate,
+        rank: stockRow.rank,
+        score: {
+          fundamental: score.fundamental,
+          momentum: score.momentum,
+          disclosure: score.disclosure,
+          institutional: score.institutional,
+          total: score.total,
+        },
+        rankChange,
+        volume: null,
+        scoreDescriptions: score.score_descriptions ?? null,
+      });
+    }
 
     return NextResponse.json(result, {
       headers: { 'Cache-Control': CACHE_CONTROL },

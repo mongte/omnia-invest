@@ -26,6 +26,70 @@ const SCORE_LABELS: Record<keyof Omit<StockScore, 'total'>, string> = {
   institutional: '기관관심',
 };
 
+type SignalValue = 'strong_buy' | 'buy' | 'hold' | 'sell' | 'strong_sell';
+
+interface SignalConfig {
+  label: string;
+  className: string;
+}
+
+const SIGNAL_CONFIG: Record<SignalValue, SignalConfig> = {
+  strong_buy: { label: '강력 매수', className: 'bg-green-600 text-white' },
+  buy: { label: '매수', className: 'bg-green-400 text-white' },
+  hold: { label: '보류', className: 'bg-muted text-muted-foreground' },
+  sell: { label: '매도', className: 'bg-red-400 text-white' },
+  strong_sell: { label: '강력 매도', className: 'bg-red-600 text-white' },
+};
+
+interface DescriptionField {
+  label: string;
+  value: string;
+  subtitle: string | null;
+  isSignal: boolean;
+}
+
+const FIELD_SUBTITLE: Record<string, string> = {
+  팩터: '밸류에이션 + 수익성 기반 펀더멘털 점수',
+  타이밍: 'RSI·MACD·볼린저밴드 기반 기술적 타이밍',
+  ML확률: 'AI 예측 향후 5일 상승 확률',
+};
+
+function isSignalValue(value: string): value is SignalValue {
+  return value in SIGNAL_CONFIG;
+}
+
+function parseDescriptions(descriptions: string[]): DescriptionField[] {
+  return descriptions.map((desc) => {
+    const colonIndex = desc.indexOf(':');
+    if (colonIndex === -1) {
+      return { label: desc, value: '', subtitle: null, isSignal: false };
+    }
+    const label = desc.slice(0, colonIndex).trim();
+    const value = desc.slice(colonIndex + 1).trim();
+    const isSignal = label === '시그널' && isSignalValue(value);
+    const subtitle = FIELD_SUBTITLE[label] ?? null;
+    return { label, value, subtitle, isSignal };
+  });
+}
+
+function SignalBadge({ value }: { value: string }) {
+  if (!isSignalValue(value)) {
+    return (
+      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+        {value}
+      </span>
+    );
+  }
+  const config = SIGNAL_CONFIG[value];
+  return (
+    <span
+      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${config.className}`}
+    >
+      {config.label}
+    </span>
+  );
+}
+
 export function ScoreRadar({ stock }: ScoreRadarProps) {
   const data = [
     { subject: '펀더멘털', value: stock.score.fundamental, fullMark: 100 },
@@ -33,6 +97,8 @@ export function ScoreRadar({ stock }: ScoreRadarProps) {
     { subject: '공시활동', value: stock.score.disclosure, fullMark: 100 },
     { subject: '기관관심', value: stock.score.institutional, fullMark: 100 },
   ];
+
+  const parsedDescriptions = parseDescriptions(stock.scoreDescriptions ?? []);
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -73,14 +139,34 @@ export function ScoreRadar({ stock }: ScoreRadarProps) {
         ))}
       </div>
 
-      <div className="flex flex-col gap-1 mt-1">
-        {(stock.scoreDescriptions ?? []).slice(0, 3).map((desc, i) => (
-          <p key={i} className="text-xs text-muted-foreground leading-relaxed">
-            <span className="text-primary mr-1">•</span>
-            {desc}
-          </p>
-        ))}
-      </div>
+      {parsedDescriptions.length > 0 && (
+        <div className="flex flex-col gap-1.5 mt-1">
+          {parsedDescriptions.map((field, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between px-2.5 py-2 rounded-md bg-muted/60 border border-border/50"
+            >
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs text-muted-foreground">{field.label}</span>
+                {field.subtitle && (
+                  <span className="text-[10px] text-muted-foreground/60 leading-tight">
+                    {field.subtitle}
+                  </span>
+                )}
+              </div>
+              {field.value && (
+                field.isSignal ? (
+                  <SignalBadge value={field.value} />
+                ) : (
+                  <span className="text-xs font-semibold text-foreground tabular-nums">
+                    {field.value}
+                  </span>
+                )
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

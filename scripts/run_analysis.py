@@ -25,11 +25,37 @@ if not url or not key:
     print("[ERROR] SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY 환경변수 필요")
     sys.exit(1)
 
+import httpx
+
+# ── Step 0: trading.ohlcv_daily → public.ohlcv 동기화 ──
+print("=== OHLCV public 동기화 ===")
+try:
+    resp = httpx.post(
+        f"{url}/rest/v1/rpc/sync_to_public_ohlcv",
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Accept-Profile": "trading",
+            "Content-Profile": "trading",
+        },
+        json={},
+        timeout=60,
+    )
+    if resp.status_code == 200:
+        synced = resp.json()
+        print(f"OHLCV 동기화: {synced}건")
+    else:
+        print(f"[WARN] OHLCV 동기화 실패: {resp.status_code} {resp.text[:200]}")
+except Exception as e:
+    print(f"[WARN] OHLCV 동기화 에러 (스코어링은 계속 진행): {e}")
+
+# ── Step 1: 스코어링 ──
 from analyzer.runner import AnalysisRunner
 
 run_date = date.fromisoformat(sys.argv[1]) if len(sys.argv) > 1 else date.today()
 
-print(f"=== 일일 분석 시작: {run_date} ===")
+print(f"\n=== 일일 분석 시작: {run_date} ===")
 runner = AnalysisRunner()
 results = runner.run(run_date)
 

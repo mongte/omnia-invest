@@ -241,35 +241,36 @@
       "id": "task-17754921563N-01",
       "title": "[FE] 스코어 기반 종목 랭킹 정렬",
       "description": "**목표**:\\n대시보드 랭킹 리스트를 stocks.rank(거래량 순위) 기준이 아닌 stock_scores.total(분석 점수) 기준 내림차순으로 정렬하여 표시한다.\\n\\n**요구사항**:\\n1. fetchRankingList() 쿼리를 stock_scores.total 기준 내림차순 정렬로 수정\\n2. API 응답에 stock_scores 테이블 JOIN 추가 (route.ts)\\n3. 각 종목에 total 점수 수치 표시\\n4. 시그널 뱃지(Strong Buy/Buy/Hold/Sell) 표시 — total 점수 구간별 매핑\\n5. 4팩터 점수(fundamental, momentum, disclosure, institutional) 서브바 또는 미니 레이더 표시\\n\\n**수락 기준**:\\n- 랭킹 리스트가 stock_scores.total 내림차순으로 표시됨\\n- 각 종목에 total 점수 + 시그널(Strong Buy/Buy/Hold/Sell) 뱃지가 표시됨\\n- 4팩터 점수(fundamental, momentum, disclosure, institutional) 서브바 또는 미니 레이더가 표시됨\\n- 기존 대시보드 레이아웃과 일관된 디자인\\n\\n**관련 파일**:\\n- apps/pharos-lab/src/shared/api/dashboard.ts — fetchRankingList() 쿼리 수정\\n- apps/pharos-lab/src/widgets/dashboard/ranking-list.tsx — UI 수정\\n- apps/pharos-lab/src/app/api/stocks/route.ts — API 응답에 scores JOIN\\n\\n**우선순위**: High\\n**의존성**: 없음 (독립 실행 가능)",
-      "status": "TODO",
+      "status": "IN_REVIEW",
       "comments": [],
       "createdAt": "2026-04-06T16:15:56.877Z",
-      "updatedAt": "2026-04-06T16:15:56.877Z"
+      "updatedAt": "2026-04-07T04:10:10.693Z",
+      "assigneeId": "agent-fe-1"
     },
     {
       "id": "task-17754921583N-02",
       "title": "[BE]+[FE] AI 공시 요약 파이프라인 + UI",
       "description": "**목표**:\\n공시 타임라인 클릭 시 AI(Claude API)로 공시를 요약하여 public.llm_summaries에 저장하고 UI에 표시한다. 현재 llm_summaries에 7건만 존재(수동 생성)하며 대부분 공시에 요약이 없는 상태를 해결한다.\\n\\n**요구사항**:\\n1. [BE] 공시 클릭 시 llm_summaries 캐시 조회 → 있으면 즉시 반환\\n2. [BE] 캐시 미스 시 Claude API 호출 → 핵심 포인트 3개 + 감성(positive/negative/neutral) + 영향 평가 생성\\n3. [BE] 생성된 요약을 llm_summaries 테이블에 INSERT (다음 조회 시 캐시)\\n4. [BE] 환경변수 ANTHROPIC_API_KEY 설정 필요\\n5. [FE] 공시 클릭 시 요약 로딩 상태 UI (스켈레톤/스피너)\\n6. [FE] 생성 완료 후 요약 카드 표시 (핵심 포인트, 감성 뱃지, 영향 평가)\\n7. [FE] 에러 핸들링 (API 실패 시 재시도 버튼 + 에러 메시지)\\n\\n**수락 기준**:\\n- 공시 클릭 → llm_summaries에 캐시 있으면 즉시 표시\\n- 캐시 없으면 → Claude API 호출 → 핵심 포인트 3개 + 감성 + 영향 평가 생성\\n- 생성된 요약이 llm_summaries에 저장됨 (다음 조회 시 캐시 히트)\\n- 로딩 상태가 사용자에게 표시됨\\n- API 실패 시 에러 메시지 + 재시도 버튼 표시\\n\\n**관련 파일**:\\n- apps/pharos-lab/src/app/api/stocks/[id]/llm-summaries/route.ts — 캐시 미스 시 Claude API 호출 로직 추가\\n- apps/pharos-lab/src/widgets/dashboard/llm-summary.tsx — 로딩/생성 중 UI\\n- 환경변수: ANTHROPIC_API_KEY\\n\\n**우선순위**: High\\n**의존성**: 없음 (독립 실행 가능)",
-      "status": "TODO",
+      "status": "DONE",
       "comments": [],
       "createdAt": "2026-04-06T16:15:58.520Z",
-      "updatedAt": "2026-04-06T16:15:58.520Z"
+      "updatedAt": "2026-04-07T04:00:04.118Z"
     },
     {
       "id": "task-17754921593N-03",
       "title": "[FE] 종목 상세 페이지 — 주가 차트 + 공시 마커",
       "description": "**목표**:\\n종목 클릭 시 상세 페이지(/stocks/[id])로 이동하여 풀사이즈 캔들 차트 + 공시 날짜 마커 + 스코어 상세를 보여준다. 현재 종목 상세 페이지가 없으며, PriceChart 위젯은 이미 캔들+마커 기능을 내장하고 있다.\\n\\n**요구사항**:\\n1. /stocks/[id] 라우트 생성 (app/(shell)/stocks/[id]/page.tsx)\\n2. stock-detail 뷰 컴포넌트 생성 (views/stock-detail/)\\n3. 캔들 차트 (lightweight-charts): OHLCV 90일 기본, 확대/축소 가능\\n4. 공시 발표일에 마커 표시 — 유형별 색상: earnings=빨강, buyback=초록, dividend=파랑\\n5. 마커 클릭 → 해당 공시 AI 요약 표시 (태스크 2 AI 공시 요약 파이프라인 연동)\\n6. 상단에 스코어 레이더 차트 + 시그널 뱃지\\n7. 뒤로가기 → 대시보드 복귀\\n\\n**수락 기준**:\\n- /stocks/[id] 라우트가 정상 동작\\n- 캔들 차트에 OHLCV 90일 데이터 표시, 확대/축소 가능\\n- 공시 발표일에 유형별 색상 마커 표시 (earnings=빨강, buyback=초록, dividend=파랑)\\n- 마커 클릭 시 해당 공시 AI 요약 표시\\n- 상단에 스코어 레이더 차트 + 시그널 뱃지 표시\\n- 뒤로가기 버튼으로 대시보드 복귀\\n\\n**관련 파일**:\\n- apps/pharos-lab/src/app/(shell)/stocks/[id]/page.tsx — 신규\\n- apps/pharos-lab/src/views/stock-detail/ — 신규 뷰\\n- apps/pharos-lab/src/widgets/dashboard/price-chart.tsx — 재사용 (풀사이즈 모드)\\n- apps/pharos-lab/src/app/api/stocks/[id]/route.ts — 기존 API 활용\\n\\n**우선순위**: Medium\\n**의존성**: 태스크 2 (AI 공시 요약 파이프라인) — 마커 클릭 시 요약 표시 기능에 의존",
-      "status": "TODO",
+      "status": "DONE",
       "comments": [],
       "createdAt": "2026-04-06T16:15:59.459Z",
-      "updatedAt": "2026-04-06T16:15:59.459Z"
+      "updatedAt": "2026-04-07T04:00:37.730Z"
     }
   ],
   "agents": [
     {
       "id": "agent-fe-1",
       "status": "IDLE",
-      "lastActiveAt": "2026-04-06T14:15:56.000Z"
+      "lastActiveAt": "2026-04-07T04:10:10.000Z"
     },
     {
       "id": "agent-be-1",

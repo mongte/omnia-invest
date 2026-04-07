@@ -14,6 +14,7 @@ import type {
   LlmSummaryData,
   LlmSentiment,
   DisclosureType,
+  RankChange,
 } from '@/entities/stock/types';
 
 // ---------------------------------------------------------------------------
@@ -23,6 +24,30 @@ import type {
 export interface RankingListItem
   extends Pick<StockData, 'id' | 'code' | 'name' | 'price' | 'change' | 'changeRate' | 'rank'> {
   score: StockData['score'];
+  /** 전일 대비 순위 변동 정보. null이면 이력 없음 */
+  rankChange: RankChange | null;
+  /** 최신 거래일 거래량. null이면 OHLCV 없음 */
+  volume: number | null;
+  /** 점수 설명 배열 (시그널, 팩터, 타이밍, ML확률 등) */
+  scoreDescriptions: string[] | null;
+}
+
+/** 공시 호재/악재/중립 판정 */
+export type DisclosureSentiment = 'positive' | 'negative' | 'neutral';
+
+/**
+ * 공시의 type + importance 기반으로 호재/악재/중립을 판정합니다.
+ * - 호재(positive): earnings(high) + buyback + dividend
+ * - 악재(negative): capital(유증) + ownership(대량매도 관련, high importance)
+ * - 중립(neutral): 나머지
+ */
+export function getDisclosureSentiment(
+  type: DisclosureType,
+  importance: DisclosureEvent['importance'],
+): DisclosureSentiment {
+  if (type === 'earnings' && importance === 'high') return 'positive';
+  if (type === 'ownership' && importance === 'high') return 'negative';
+  return 'neutral';
 }
 
 export interface StockDetail {
@@ -63,60 +88,108 @@ function toLlmSentiment(raw: string): LlmSentiment {
  * @param limit - 조회할 상위 종목 수 (기본값: 50)
  */
 export async function fetchRankingList(limit = 50): Promise<RankingListItem[]> {
-  const { data: stocks, error: stocksError } = await supabase
-    .from('stocks')
-    .select('id, code, name, price, change, change_rate, rank')
-    .not('rank', 'is', null)
-    .order('rank', { ascending: true })
-    .limit(limit);
-
-  if (stocksError) {
-    throw new Error(`[dashboard] fetchRankingList stocks: ${stocksError.message}`);
-  }
-  if (!stocks || stocks.length === 0) {
-    return [];
-  }
-
-  const stockIds = stocks.map((s) => s.id);
-
+  // stock_scores.total 내림차순 정렬 후 상위 N개 stock_id 획득
   const { data: scores, error: scoresError } = await supabase
     .from('stock_scores')
     .select('stock_id, fundamental, momentum, disclosure, institutional, total, score_descriptions')
-    .in('stock_id', stockIds);
+    .order('total', { ascending: false })
+    .limit(limit);
 
   if (scoresError) {
     throw new Error(`[dashboard] fetchRankingList scores: ${scoresError.message}`);
   }
+  if (!scores || scores.length === 0) {
+    return [];
+  }
 
-  const scoreMap = new Map(
-    (scores ?? []).map((s) => [
-      s.stock_id,
-      {
-        fundamental: s.fundamental,
-        momentum: s.momentum,
-        disclosure: s.disclosure,
-        institutional: s.institutional,
-        total: s.total,
-      },
-    ]),
+  const stockIds = scores.map((s) => s.stock_id);
+
+  // stocks 정보, ranking_history, 최신 거래량을 병렬 조회
+  const [stocksResult, historyResult, ohlcvResult] = await Promise.all([
+    supabase
+      .from('stocks')
+      .select('id, code, name, price, change, change_rate, rank')
+      .in('id', stockIds),
+    supabase
+      .from('ranking_history')
+      .select('stock_id, rank_date, rank')
+      .in('stock_id', stockIds)
+      .order('rank_date', { ascending: false })
+      .limit(stockIds.length * 2),
+    supabase
+      .from('ohlcv')
+      .select('stock_id, volume')
+      .in('stock_id', stockIds)
+      .order('trade_date', { ascending: false })
+      .limit(stockIds.length),
+  ]);
+
+  if (stocksResult.error) {
+    throw new Error(`[dashboard] fetchRankingList stocks: ${stocksResult.error.message}`);
+  }
+
+  const stockMap = new Map(
+    (stocksResult.data ?? []).map((s) => [s.id, s]),
   );
 
-  return stocks.map((s) => ({
-    id: s.id,
-    code: s.code,
-    name: s.name,
-    price: s.price,
-    change: s.change,
-    changeRate: s.change_rate,
-    rank: s.rank,
-    score: scoreMap.get(s.id) ?? {
-      fundamental: 0,
-      momentum: 0,
-      disclosure: 0,
-      institutional: 0,
-      total: 0,
-    },
-  }));
+  // 최신 거래량 맵 구성 (stock_id별 첫 번째 = 최신)
+  const volumeMap = new Map<string, number>();
+  for (const row of ohlcvResult.data ?? []) {
+    if (!volumeMap.has(row.stock_id)) {
+      volumeMap.set(row.stock_id, row.volume);
+    }
+  }
+
+  // 전일 순위 맵 구성: 각 종목의 가장 최신 날짜 이전 날짜의 rank를 previous로 사용
+  const historyRows = historyResult.data ?? [];
+  const byStock = new Map<string, Array<{ rank_date: string; rank: number }>>();
+  for (const row of historyRows) {
+    const existing = byStock.get(row.stock_id) ?? [];
+    existing.push({ rank_date: row.rank_date, rank: row.rank });
+    byStock.set(row.stock_id, existing);
+  }
+  const prevRankMap = new Map<string, number | null>();
+  for (const [stockId, rows] of byStock.entries()) {
+    rows.sort((a, b) => (a.rank_date > b.rank_date ? -1 : 1));
+    prevRankMap.set(stockId, rows[1]?.rank ?? null);
+  }
+
+  // scores 순서 유지 (total 내림차순) + stockMap에 없는 항목 제외
+  const result: RankingListItem[] = [];
+  for (const score of scores) {
+    const stockRow = stockMap.get(score.stock_id);
+    if (!stockRow) continue;
+
+    const prevRank = prevRankMap.get(score.stock_id) ?? null;
+    const currentRank = stockRow.rank;
+    const delta =
+      prevRank !== null && currentRank !== null ? prevRank - currentRank : null;
+
+    result.push({
+      id: stockRow.id,
+      code: stockRow.code,
+      name: stockRow.name,
+      price: stockRow.price,
+      change: stockRow.change,
+      changeRate: stockRow.change_rate,
+      rank: stockRow.rank,
+      score: {
+        fundamental: score.fundamental,
+        momentum: score.momentum,
+        disclosure: score.disclosure,
+        institutional: score.institutional,
+        total: score.total,
+      },
+      rankChange:
+        prevRank !== null
+          ? { previousRank: prevRank, delta }
+          : null,
+      volume: volumeMap.get(score.stock_id) ?? null,
+      scoreDescriptions: score.score_descriptions ?? null,
+    });
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +385,15 @@ export async function fetchStockDetail(stockId: string): Promise<StockDetail> {
     throw new Error(`[dashboard] fetchStockDetail: stock not found (${stockId})`);
   }
 
+  // 최신 거래량 조회
+  const { data: latestOhlcv } = await supabase
+    .from('ohlcv')
+    .select('volume')
+    .eq('stock_id', stockId)
+    .order('trade_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const stock: RankingListItem = {
     id: stockRow.id,
     code: stockRow.code,
@@ -327,6 +409,9 @@ export async function fetchStockDetail(stockId: string): Promise<StockDetail> {
       institutional: scoreData.institutional,
       total: scoreData.total,
     },
+    rankChange: null,
+    volume: latestOhlcv?.volume ?? null,
+    scoreDescriptions: scoreData.scoreDescriptions ?? null,
   };
 
   return {

@@ -68,7 +68,7 @@ export async function GET(
           .maybeSingle(),
         supabase
           .from('stock_scores')
-          .select('fundamental, momentum, disclosure, institutional, total')
+          .select('fundamental, momentum, disclosure, institutional, total, score_descriptions')
           .eq('stock_id', stockId)
           .order('scored_at', { ascending: false })
           .limit(1)
@@ -146,6 +146,9 @@ export async function GET(
             institutional: 0,
             total: 0,
           },
+      rankChange: null,
+      volume: null,
+      scoreDescriptions: scoreRow?.score_descriptions ?? null,
     };
 
     const disclosures: DisclosureEvent[] = (disclosureResult.data ?? []).map((row) => ({

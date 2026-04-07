@@ -6,6 +6,14 @@ export interface StockScore {
   total: number;
 }
 
+/** 순위 변동 정보 */
+export interface RankChange {
+  /** 이전 순위. null이면 신규 진입 */
+  previousRank: number | null;
+  /** delta = previousRank - currentRank. 양수=상승, 음수=하락, 0=유지, null=신규 */
+  delta: number | null;
+}
+
 export interface StockData {
   id: string;
   code: string;
