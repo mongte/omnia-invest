@@ -209,8 +209,8 @@ class AnalysisRunner:
                 "signal_date": signal_date.isoformat(),
                 "signal": r.signal,
                 "total_score": r.total_score,
-                "score_detail": json.dumps(_sanitize(r.score_detail)),
-                "indicators": json.dumps(_sanitize(indicators)),
+                "score_detail": _sanitize(r.score_detail),
+                "indicators": _sanitize(indicators),
                 "rank": r.rank,
             })
 

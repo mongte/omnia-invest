@@ -1,0 +1,79 @@
+{
+  "tasks": [
+    {
+      "id": "task-17755466763N",
+      "title": "[FE] 랜딩 페이지 라우트 및 레이아웃 구성",
+      "description": "**목표**:\n루트 page.tsx를 랜딩 페이지로 교체하고, (shell) 라우트 그룹과 분리된 독립 레이아웃을 구성한다. 사이드바/헤더 없이 풀 스크린 랜딩 경험을 제공한다.\n\n**요구사항**:\n1. app/page.tsx의 redirect('/dashboard') 제거 → 랜딩 페이지 컴포넌트 렌더링\n2. 랜딩 전용 레이아웃 생성 (app/(landing)/layout.tsx 또는 루트 page.tsx 직접 사용)\n3. (shell) 레이아웃(사이드바+헤더)이 적용되지 않는 독립 페이지로 구성\n4. 랜딩 네비게이션 바 컴포넌트 생성 (로고, 메뉴 링크, CTA 버튼)\n5. 푸터 컴포넌트 생성 (저작권, 링크)\n6. 반응형 레이아웃 (모바일/태블릿/데스크톱)\n7. 다크 테마 기본 유지, 기존 globals.css 디자인 토큰 활용\n\n**수락 기준**:\n- localhost:3000/ 접속 시 랜딩 페이지가 표시된다 (대시보드 리다이렉트 아님)\n- 네비게이션 바에 로고와 '대시보드로 이동' CTA 버튼이 있다\n- 푸터가 페이지 하단에 렌더링된다\n- (shell) 라우트의 사이드바/헤더가 랜딩 페이지에 나타나지 않는다\n- 모바일 320px ~ 데스크톱 1440px에서 레이아웃이 깨지지 않는다\n- npx tsc --noEmit 통과",
+      "status": "IN_REVIEW",
+      "comments": [],
+      "createdAt": "2026-04-07T07:24:36.268Z",
+      "updatedAt": "2026-04-07T07:33:26.793Z",
+      "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-1775546895001",
+      "title": "[FE] 히어로 섹션 구현",
+      "description": "**목표**:\n랜딩 페이지 최상단 히어로 섹션을 구현한다. Pharos Lab의 핵심 가치(퀀트 기반 투자 분석)를 한눈에 전달하고, 사용자를 대시보드로 유도하는 CTA를 배치한다.\n\n**요구사항**:\n1. widgets/landing/hero-section.tsx 생성 (FSD 구조 준수)\n2. 메인 헤드라인: 퀀트 투자 분석 플랫폼의 핵심 가치 전달\n3. 서브 헤드라인: 주요 기능 요약 (종목 스코어링, 가상 투자, 실시간 데이터)\n4. CTA 버튼: '대시보드 시작하기' -> /dashboard 링크\n5. 배경에 투자 플랫폼 느낌의 시각적 장식 (그라디언트, 그리드 패턴 등)\n6. Geist 폰트 활용, 기존 디자인 토큰(--primary, --foreground 등) 사용\n7. 모션/애니메이션은 CSS만 사용 (외부 라이브러리 추가 금지)\n\n**수락 기준**:\n- 히어로 섹션이 뷰포트 높이의 최소 80vh를 차지한다\n- 헤드라인 텍스트가 명확하게 읽힌다 (contrast ratio WCAG AA)\n- CTA 버튼 클릭 시 /dashboard로 이동한다\n- 모바일에서 텍스트가 잘리지 않고 CTA 버튼이 탭 가능 크기(44px+)이다\n- npx tsc --noEmit 통과\n\n**의존성**:\n- '랜딩 페이지 라우트 및 레이아웃 구성' 태스크 완료 후 통합",
+      "status": "IN_REVIEW",
+      "comments": [],
+      "createdAt": "2026-04-07T07:28:15.767Z",
+      "updatedAt": "2026-04-07T07:33:52.593Z",
+      "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-1775546897002",
+      "title": "[FE] 주요 기능 소개 섹션 구현",
+      "description": "**목표**:\nPharos Lab의 3가지 핵심 기능(종목 분석 대시보드, 가상 투자, 데이터 파이프라인)을 카드 형태로 소개하는 섹션을 구현한다.\n\n**요구사항**:\n1. widgets/landing/features-section.tsx 생성\n2. 3개의 기능 카드 구성:\n   - 종목 스코어링: 코스피 Top50 종목의 퀀트 점수 분석 (차트 아이콘)\n   - 가상 투자: 리스크 없는 모의 포트폴리오 운용 (지갑 아이콘)\n   - 실시간 데이터: 키움증권 API 기반 일봉/종가 자동 수집 (데이터베이스 아이콘)\n3. shadcn/ui Card 컴포넌트 활용\n4. Lucide React 아이콘 사용\n5. 반응형 그리드: 모바일 1열 -> 태블릿 2열 -> 데스크톱 3열\n6. 각 카드에 hover 효과 (border-color 또는 scale 변화)\n\n**수락 기준**:\n- 3개의 기능 카드가 렌더링된다\n- 각 카드에 아이콘, 제목, 설명 텍스트가 있다\n- 데스크톱(1024px+)에서 3열, 태블릿(768px)에서 2열, 모바일(~767px)에서 1열 배치\n- 카드 hover 시 시각적 피드백이 있다\n- npx tsc --noEmit 통과\n\n**의존성**:\n- '랜딩 페이지 라우트 및 레이아웃 구성' 태스크 완료 후 통합",
+      "status": "IN_REVIEW",
+      "comments": [],
+      "createdAt": "2026-04-07T07:28:17.495Z",
+      "updatedAt": "2026-04-07T07:34:17.690Z",
+      "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-1775546900003",
+      "title": "[FE] 데이터 현황 미리보기 섹션 구현",
+      "description": "**목표**:\nPharos Lab이 실제로 보유한 데이터의 규모와 신뢰성을 보여주는 통계 섹션을 구현한다. 방문자에게 플랫폼의 실체감을 전달한다.\n\n**요구사항**:\n1. widgets/landing/data-stats-section.tsx 생성\n2. 주요 통계 수치 표시 (정적 값, API 호출 없음):\n   - 분석 종목 수: 50+ (코스피 Top50)\n   - 일봉 데이터: 12,500+ 건\n   - 공시 데이터: 600+ 건\n   - 데이터 갱신: 매일 2회 (자동)\n3. 숫자 카운트업 애니메이션 (CSS 또는 requestAnimationFrame, 외부 라이브러리 금지)\n4. Intersection Observer로 뷰포트 진입 시 애니메이션 시작\n5. 배경 색상 구분으로 섹션 분리감 제공\n\n**수락 기준**:\n- 4개의 통계 항목이 렌더링된다\n- 스크롤 시 숫자가 0에서 목표값까지 카운트업된다\n- 카운트업은 뷰포트 진입 시 1회만 실행된다\n- 'use client' 지시문이 올바르게 적용되어 있다\n- npx tsc --noEmit 통과\n\n**의존성**:\n- '랜딩 페이지 라우트 및 레이아웃 구성' 태스크 완료 후 통합",
+      "status": "IN_REVIEW",
+      "comments": [],
+      "createdAt": "2026-04-07T07:28:20.228Z",
+      "updatedAt": "2026-04-07T07:34:44.423Z",
+      "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-1775546901004",
+      "title": "[FE] 대시보드 미리보기 섹션 구현",
+      "description": "**목표**:\n실제 대시보드 UI의 목업을 활용하여 플랫폼의 분석 화면을 미리 보여주는 섹션을 구현한다. 사용자가 로그인 전 어떤 경험을 할 수 있는지 시각적으로 전달한다.\n\n**요구사항**:\n1. widgets/landing/preview-section.tsx 생성\n2. 대시보드 UI 목업 표현:\n   - 기존 차트 컴포넌트(radar-chart, area-chart 등)를 정적 데이터로 렌더링하여 미리보기 구성\n   - 또는 CSS로 대시보드 레이아웃을 간략히 시뮬레이션\n3. 브라우저 프레임(mockup window) 안에 콘텐츠를 배치하여 앱 느낌 제공\n4. 섹션 제목: '실시간 퀀트 분석 대시보드' 등\n5. 그라디언트 오버레이로 미리보기 하단이 자연스럽게 페이드아웃\n\n**수락 기준**:\n- 대시보드 미리보기가 브라우저 프레임 안에 렌더링된다\n- 차트 컴포넌트가 정적 더미 데이터로 표시되거나, CSS 목업이 보인다\n- 하단 그라디언트 페이드아웃이 적용된다\n- 반응형: 모바일에서 가로 스크롤 없이 축소 표시\n- npx tsc --noEmit 통과\n\n**의존성**:\n- '랜딩 페이지 라우트 및 레이아웃 구성' 태스크 완료 후 통합\n- 기존 shared/ui/charts 컴포넌트 재활용",
+      "status": "IN_REVIEW",
+      "comments": [],
+      "createdAt": "2026-04-07T07:28:21.311Z",
+      "updatedAt": "2026-04-07T07:35:37.887Z",
+      "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-1775546911005",
+      "title": "[FE] CTA 섹션 및 랜딩 페이지 조립",
+      "description": "**목표**:\n랜딩 페이지 하단에 최종 행동 유도(CTA) 섹션을 추가하고, 모든 위젯을 views/landing/landing-view.tsx에 조립하여 완성된 랜딩 페이지를 구성한다.\n\n**요구사항**:\n1. widgets/landing/cta-section.tsx 생성\n   - 강조 헤드라인: '지금 바로 퀀트 분석을 시작하세요'\n   - 큰 CTA 버튼: '대시보드 시작하기' -> /dashboard\n   - 배경에 그라디언트 또는 패턴으로 시각적 강조\n2. views/landing/landing-view.tsx 생성 (FSD 구조)\n   - 섹션 조립 순서: Hero -> Features -> DataStats -> Preview -> CTA -> Footer\n   - 각 섹션 간 적절한 간격(py-16 ~ py-24)\n3. views/landing/index.ts 배럴 파일 생성\n4. app/page.tsx에서 LandingView import하여 렌더링\n5. 스크롤 시 부드러운 전환 (scroll-smooth 적용)\n\n**수락 기준**:\n- localhost:3000/ 접속 시 완성된 랜딩 페이지가 표시된다\n- 스크롤 시 Hero -> Features -> DataStats -> Preview -> CTA -> Footer 순서로 섹션이 나타난다\n- 최종 CTA 버튼 클릭 시 /dashboard로 이동한다\n- 전체 페이지 스크롤이 부드럽다 (scroll-behavior: smooth)\n- 모든 섹션 간 시각적 일관성 유지 (디자인 토큰 통일)\n- npx tsc --noEmit 통과\n\n**의존성**:\n- 다른 모든 랜딩 섹션 태스크 완료 후 최종 조립",
+      "status": "IN_PROGRESS",
+      "comments": [],
+      "createdAt": "2026-04-07T07:28:31.180Z",
+      "updatedAt": "2026-04-07T07:35:41.982Z",
+      "assigneeId": "agent-fe-1"
+    }
+  ],
+  "agents": [
+    {
+      "id": "agent-pm",
+      "name": "PM Agent",
+      "role": "Product Manager",
+      "status": "IDLE",
+      "lastActiveAt": "2026-04-07T07:28:36.000Z"
+    },
+    {
+      "id": "agent-fe-1",
+      "status": "WORKING",
+      "currentTaskId": "task-1775546911005",
+      "lastActiveAt": "2026-04-07T07:35:41.000Z"
+    }
+  ]
+}

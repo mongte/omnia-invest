@@ -29,8 +29,14 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="left" className="w-64 p-0">
         <SheetHeader className="h-14 flex-row items-center px-4 border-b border-border">
-          <SheetTitle className="text-lg font-bold tracking-tight">
-            Pharos Lab
+          <SheetTitle asChild>
+            <Link
+              href="/"
+              className="text-lg font-bold tracking-tight hover:opacity-80 transition-opacity"
+              aria-label="랜딩 페이지로 이동"
+            >
+              Pharos Lab
+            </Link>
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 p-3">

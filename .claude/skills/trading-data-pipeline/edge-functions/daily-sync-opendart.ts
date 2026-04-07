@@ -4,6 +4,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { notifyDiscord } from "../_shared/discord-notify.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -29,6 +30,7 @@ async function execSql(query: string): Promise<void> {
 }
 
 Deno.serve(async () => {
+  const startTime = Date.now();
   let rows = 0;
   const errors: string[] = [];
   try {
@@ -69,8 +71,10 @@ Deno.serve(async () => {
     const errMsg = errors.length > 0 ? `'${errors.join(";").replace(/'/g,"''").slice(0,500)}'` : "NULL";
     await execSql(`INSERT INTO trading.sync_log (job_name,status,rows_affected,error_message,finished_at) VALUES ('daily-sync-opendart','${status}',${rows},${errMsg},NOW())`);
 
+    await notifyDiscord({ jobName: "daily-sync-opendart", status: status as "success" | "partial", rows, elapsedMs: Date.now() - startTime, errors: errors.length > 0 ? errors : undefined });
     return new Response(JSON.stringify({ ok: true, rows, errors }), { headers: { "Content-Type": "application/json" } });
   } catch (e) {
+    await notifyDiscord({ jobName: "daily-sync-opendart", status: "error", rows: 0, elapsedMs: Date.now() - startTime, errors: [String(e)] });
     try { await execSql(`INSERT INTO trading.sync_log (job_name,status,error_message,finished_at) VALUES ('daily-sync-opendart','error','${String(e).replace(/'/g,"''").slice(0,500)}',NOW())`); } catch (_) {}
     return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }

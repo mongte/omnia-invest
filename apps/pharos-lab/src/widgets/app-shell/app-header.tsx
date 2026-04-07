@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { User } from 'lucide-react';
 import { MobileNav } from './mobile-nav';
 
@@ -5,9 +6,13 @@ export function AppHeader() {
   return (
     <header className="flex items-center h-14 px-4 border-b border-border bg-card shrink-0 md:hidden">
       <MobileNav />
-      <span className="ml-3 text-base font-bold tracking-tight text-foreground md:hidden">
+      <Link
+        href="/"
+        className="ml-3 text-base font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity md:hidden"
+        aria-label="랜딩 페이지로 이동"
+      >
         Pharos Lab
-      </span>
+      </Link>
       <div className="ml-auto flex items-center gap-2">
         <button
           type="button"

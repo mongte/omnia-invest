@@ -11,6 +11,7 @@ GitHub Actions용 분석 실행 래퍼.
 
 import os
 import sys
+import time
 from datetime import date
 from pathlib import Path
 
@@ -26,6 +27,9 @@ if not url or not key:
     sys.exit(1)
 
 import httpx
+from discord_notifier import send_batch_notification
+
+_started = time.time()
 
 # ── Step 0: trading.ohlcv_daily → public.ohlcv 동기화 ──
 print("=== OHLCV public 동기화 ===")
@@ -57,7 +61,12 @@ run_date = date.fromisoformat(sys.argv[1]) if len(sys.argv) > 1 else date.today(
 
 print(f"\n=== 일일 분석 시작: {run_date} ===")
 runner = AnalysisRunner()
-results = runner.run(run_date)
+try:
+    results = runner.run(run_date)
+except Exception as e:
+    elapsed = time.time() - _started
+    send_batch_notification('daily-analysis', 'error', 0, elapsed, error_msg=str(e))
+    raise
 
 print(f"\n{'='*60}")
 print(f"분석 완료: {len(results)}종목 | 기준일: {run_date}")
@@ -73,3 +82,8 @@ signals = Counter(r.signal for r in results)
 print(f"\n시그널 분포: {dict(signals)}")
 print(f"public.stock_scores 동기화 완료")
 print(f"public.ranking_history 동기화 완료")
+
+elapsed = time.time() - _started
+send_batch_notification('daily-analysis', 'success', len(results), elapsed, extra_fields=[
+    {'name': 'Signals', 'value': ' / '.join(f'{k}: {v}' for k, v in signals.items()), 'inline': False},
+])

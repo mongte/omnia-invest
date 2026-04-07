@@ -21,6 +21,7 @@ import time
 
 import anthropic
 import httpx
+from discord_notifier import send_batch_notification
 
 
 def get_supabase_client():
@@ -145,11 +146,13 @@ def main():
     client = anthropic.Anthropic(api_key=api_key)
 
     # 미생성 공시 조회
+    started = time.time()
     pending = get_pending_disclosures(url, key, limit=args.limit)
     print(f"요약 미생성 공시: {len(pending)}건")
 
     if not pending:
         print("생성할 공시 없음. 종료.")
+        send_batch_notification('generate-summaries', 'success', 0, time.time() - started)
         return
 
     success = 0
@@ -172,7 +175,13 @@ def main():
         if i < len(pending) - 1:
             time.sleep(0.5)
 
+    elapsed = time.time() - started
     print(f"\n완료: 성공 {success}건, 실패 {failed}건")
+
+    status = 'success' if failed == 0 else 'partial'
+    send_batch_notification('generate-summaries', status, success, elapsed, extra_fields=[
+        {'name': 'Failed', 'value': str(failed), 'inline': True},
+    ])
 
 
 if __name__ == "__main__":

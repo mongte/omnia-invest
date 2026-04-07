@@ -4,6 +4,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { notifyDiscord } from "../_shared/discord-notify.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -30,6 +31,7 @@ function getLatestReportPeriod(): { bsns_year: string; reprt_code: string } {
 }
 
 Deno.serve(async () => {
+  const startTime = Date.now();
   let rows = 0;
   try {
     const dartKey = Deno.env.get("DART_API_KEY")!;
@@ -58,8 +60,10 @@ Deno.serve(async () => {
     }
 
     await execSql(`INSERT INTO trading.sync_log (job_name,status,rows_affected,finished_at) VALUES ('monthly-financial-sync','success',${rows},NOW())`);
+    await notifyDiscord({ jobName: "monthly-financial-sync", status: "success", rows, elapsedMs: Date.now() - startTime });
     return new Response(JSON.stringify({ ok: true, rows }), { headers: { "Content-Type": "application/json" } });
   } catch (e) {
+    await notifyDiscord({ jobName: "monthly-financial-sync", status: "error", rows: 0, elapsedMs: Date.now() - startTime, errors: [String(e)] });
     try { await execSql(`INSERT INTO trading.sync_log (job_name,status,error_message,finished_at) VALUES ('monthly-financial-sync','error','${String(e).replace(/'/g,"''").slice(0,500)}',NOW())`); } catch (_) {}
     return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
   }

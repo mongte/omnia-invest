@@ -27,7 +27,11 @@ export function AppSidebar({ pathname, isCollapsed, onToggle }: AppSidebarProps)
         )}
       >
         {/* 로고 영역 */}
-        <div className="flex items-center h-14 px-4 border-b border-border overflow-hidden">
+        <Link
+          href="/"
+          className="flex items-center h-14 px-4 border-b border-border overflow-hidden hover:opacity-80 transition-opacity"
+          aria-label="랜딩 페이지로 이동"
+        >
           <span className="text-lg font-bold tracking-tight text-foreground shrink-0">
             P
           </span>
@@ -41,7 +45,7 @@ export function AppSidebar({ pathname, isCollapsed, onToggle }: AppSidebarProps)
           >
             haros Lab
           </span>
-        </div>
+        </Link>
 
         {/* 토글 버튼 */}
         <div className={cn('flex border-b border-border', isCollapsed ? 'justify-center' : 'justify-end')}>

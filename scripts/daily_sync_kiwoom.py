@@ -15,6 +15,7 @@ import httpx
 import sys
 import time
 from datetime import datetime, timedelta
+from discord_notifier import send_batch_notification
 
 
 # --- 설정 ---
@@ -150,7 +151,7 @@ def log_sync(supabase_url: str, service_key: str, job_name: str, status: str, ro
 
 # --- pre-market Job ---
 
-def run_pre_market(token: str, supabase_url: str, service_key: str) -> None:
+def run_pre_market(token: str, supabase_url: str, service_key: str) -> int:
     """
     장 시작 전:
     1. ka10023 거래량급증 -> watch_universe UPSERT (Top50)
@@ -271,11 +272,12 @@ def run_pre_market(token: str, supabase_url: str, service_key: str) -> None:
     # sync_log
     log_sync(supabase_url, service_key, 'pre-market-kiwoom', 'success', total_rows)
     print(f'[pre-market] 완료 (총 {total_rows}건)')
+    return total_rows
 
 
 # --- post-market Job ---
 
-def run_post_market(token: str, supabase_url: str, service_key: str) -> None:
+def run_post_market(token: str, supabase_url: str, service_key: str) -> int:
     """
     장 마감 후:
     1. watch_universe 활성 종목 조회
@@ -395,6 +397,7 @@ def run_post_market(token: str, supabase_url: str, service_key: str) -> None:
     # sync_log
     log_sync(supabase_url, service_key, 'post-market-kiwoom', 'success', total_rows)
     print(f'[post-market] 완료 (총 {total_rows}건)')
+    return total_rows
 
 
 # --- 헬퍼 ---
@@ -443,15 +446,18 @@ def main() -> None:
     started = datetime.now()
     try:
         if args.job == 'pre-market':
-            run_pre_market(token, supabase_url, service_key)
+            rows = run_pre_market(token, supabase_url, service_key)
         else:
-            run_post_market(token, supabase_url, service_key)
+            rows = run_post_market(token, supabase_url, service_key)
+        elapsed = (datetime.now() - started).total_seconds()
+        send_batch_notification(f'{args.job}-kiwoom', 'success', rows, elapsed)
     except Exception as e:
+        elapsed = (datetime.now() - started).total_seconds()
         print(f'[FATAL] {e}')
+        send_batch_notification(f'{args.job}-kiwoom', 'error', 0, elapsed, error_msg=str(e))
         log_sync(supabase_url, service_key, f'{args.job}-kiwoom', 'error', 0)
         sys.exit(1)
 
-    elapsed = (datetime.now() - started).total_seconds()
     print(f'소요 시간: {elapsed:.1f}초')
 
 

@@ -72,3 +72,7 @@ build/
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+.supabase/*
+.supabase/.*
+supabase/.temp/

@@ -48,6 +48,45 @@ interface DescriptionField {
   isSignal: boolean;
 }
 
+interface Interpretation {
+  text: string;
+  color: 'green' | 'red' | 'muted';
+}
+
+const INTERPRET_STYLES: Record<Interpretation['color'], string> = {
+  green: 'bg-green-500/15 text-green-600 dark:text-green-400',
+  red: 'bg-red-500/15 text-red-600 dark:text-red-400',
+  muted: 'bg-muted text-muted-foreground',
+};
+
+function interpretValue(label: string, value: string): Interpretation | null {
+  const num = parseFloat(value);
+  if (isNaN(num)) return null;
+
+  if (label === '팩터') {
+    if (num >= 60) return { text: '양호', color: 'green' };
+    if (num >= 30) return { text: '보통', color: 'muted' };
+    return { text: '약함', color: 'red' };
+  }
+
+  if (label === '타이밍') {
+    const clamped = Math.min(Math.max(num, 0), 100);
+    if (clamped >= 60) return { text: '매수 타이밍', color: 'green' };
+    if (clamped >= 40) return { text: '중립', color: 'muted' };
+    return { text: '매도 타이밍', color: 'red' };
+  }
+
+  if (label === 'ML확률') {
+    if (num >= 0.65) return { text: '강한 상승', color: 'green' };
+    if (num >= 0.55) return { text: '상승 예측', color: 'green' };
+    if (num >= 0.45) return { text: '중립', color: 'muted' };
+    if (num >= 0.35) return { text: '하락 예측', color: 'red' };
+    return { text: '강한 하락', color: 'red' };
+  }
+
+  return null;
+}
+
 const FIELD_SUBTITLE: Record<string, string> = {
   팩터: '밸류에이션 + 수익성 기반 펀더멘털 점수',
   타이밍: 'RSI·MACD·볼린저밴드 기반 기술적 타이밍',
@@ -156,11 +195,26 @@ export function ScoreRadar({ stock }: ScoreRadarProps) {
               </div>
               {field.value && (
                 field.isSignal ? (
-                  <SignalBadge value={field.value} />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-foreground tabular-nums">
+                      {field.value}
+                    </span>
+                    <SignalBadge value={field.value} />
+                  </div>
                 ) : (
-                  <span className="text-xs font-semibold text-foreground tabular-nums">
-                    {field.value}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {(() => {
+                      const interp = interpretValue(field.label, field.value);
+                      return interp ? (
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${INTERPRET_STYLES[interp.color]}`}>
+                          {interp.text}
+                        </span>
+                      ) : null;
+                    })()}
+                    <span className="text-xs font-semibold text-foreground tabular-nums">
+                      {field.value}
+                    </span>
+                  </div>
                 )
               )}
             </div>
