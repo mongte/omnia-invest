@@ -258,6 +258,45 @@ class StrategyScorer:
 
         return scores
 
+    # ── 기관관심 스코어 ──
+
+    def institutional_score(self, investor_data: pd.DataFrame, stock_code: str) -> float:
+        """기관관심 raw 점수 산출 (percentile rank는 runner.py에서 적용).
+
+        sub-factors:
+          1. 기관(orgn) 5일 순매수 합 / (20일 평균 절대값 + ε) × 0.4
+          2. 외국인(frgnr_invsr) 5일 순매수 합 / (20일 평균 절대값 + ε) × 0.4
+          3. 연기금(penfnd_etc) 최근 5일 순매수 > 0 여부 × 0.2
+        """
+        if investor_data.empty:
+            return 0.0
+
+        stock_df = investor_data[investor_data["stock_code"] == stock_code].copy()
+        if stock_df.empty:
+            return 0.0
+
+        stock_df = stock_df.sort_values("trade_date", ascending=False).head(20)
+
+        def _trend(col: str) -> float:
+            """최근 5일 합 / (20일 평균 절대값 + 1) — 스케일 정규화."""
+            vals = pd.to_numeric(stock_df[col], errors="coerce").fillna(0)
+            recent5 = float(vals.head(5).sum())
+            avg20 = float(vals.abs().mean()) + 1.0
+            return recent5 / avg20
+
+        orgn_trend = _trend("orgn")
+        frgn_trend = _trend("frgnr_invsr")
+
+        penfnd_vals = pd.to_numeric(stock_df["penfnd_etc"].head(5), errors="coerce").fillna(0)
+        penfnd_signal = 1.0 if float(penfnd_vals.sum()) > 0 else 0.0
+
+        raw = (
+            orgn_trend * 0.4
+            + frgn_trend * 0.4
+            + penfnd_signal * 0.2
+        )
+        return float(raw)
+
     # ── 종합 스코어링 ──
 
     def score_stock(
@@ -268,6 +307,7 @@ class StrategyScorer:
         financials: pd.DataFrame,
         disclosures: pd.DataFrame,
         ml_prob: float | None = None,
+        investor_data: pd.DataFrame | None = None,
     ) -> ScoreResult:
         """종목 1개의 동적 종합 스코어 계산.
 
@@ -293,6 +333,10 @@ class StrategyScorer:
         # Layer 3: ML 예측 확률 (없으면 중립 0.5)
         ml_probability = ml_prob if ml_prob is not None else 0.5
         detail["ml_prob"] = ml_probability
+
+        # 기관관심 raw (percentile rank는 runner.py에서 일괄 적용)
+        inv_df = investor_data if investor_data is not None else pd.DataFrame()
+        detail["institutional_raw"] = self.institutional_score(inv_df, stock_code)
 
         # 가중합 (0~100)
         w = self.weights
@@ -343,7 +387,8 @@ class StrategyScorer:
 
     def to_public_scores(self, result: ScoreResult, *,
                          normalized_momentum: float | None = None,
-                         normalized_fundamental: float | None = None) -> dict:
+                         normalized_fundamental: float | None = None,
+                         normalized_institutional: float | None = None) -> dict:
         """ScoreResult를 public.stock_scores 컬럼에 매핑.
 
         public.stock_scores: fundamental(0~100), momentum(0~100),
@@ -352,24 +397,26 @@ class StrategyScorer:
         Args:
             normalized_momentum: percentile rank 정규화된 모멘텀 점수(0~100).
             normalized_fundamental: percentile rank 정규화된 펀더멘털 점수(0~100).
+            normalized_institutional: percentile rank 정규화된 기관관심 점수(0~100).
         """
         d = result.score_detail
 
-        # fundamental/momentum: percentile rank 정규화 값 사용
         fund_score = normalized_fundamental if normalized_fundamental is not None else 50.0
         momentum_score = normalized_momentum if normalized_momentum is not None else d.get("timing_raw", 50)
+        inst_score = normalized_institutional if normalized_institutional is not None else 50.0
 
         return {
             "stock_id": result.stock_code,
             "fundamental": self._safe_int(fund_score),
             "momentum": self._safe_int(momentum_score),
             "disclosure": self._safe_int(d.get("f_event", 50)),
-            "institutional": 50,
+            "institutional": self._safe_int(inst_score),
             "total": self._safe_int(result.total_score),
             "score_descriptions": [
                 f"시그널: {result.signal}",
                 f"팩터: {d.get('factor_raw', 0) or 0:.1f}",
                 f"타이밍: {d.get('timing_raw', 0) or 0:.1f}",
                 f"ML확률: {d.get('ml_prob', 0.5) or 0.5:.2f}",
+                f"기관관심(raw): {d.get('institutional_raw', 0) or 0:.2f}",
             ],
         }

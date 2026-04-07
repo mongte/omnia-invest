@@ -145,6 +145,25 @@ class KiwoomClient:
         })
         return result.get('stk_dt_pole_chart_qry', [])
 
+    def get_investor_trading(self, stk_cd: str, dt: str) -> list[dict]:
+        """
+        ka10059 - 종목별투자자기관별요청
+        해당 일자의 투자자 유형별(기관/외국인/연기금 등) 순매수 금액 반환.
+        전체 투자자 유형을 한번에 반환 → 종목당 1회 호출로 충분.
+
+        Returns:
+            [{dt, ind_invsr, frgnr_invsr, orgn, fnnc_invt, insrnc, invtrt,
+              etc_fnnc, bank, penfnd_etc, samo_fund, natn, etc_corp, natfor}, ...]
+        """
+        result = self._post('/api/dostk/stkinfo', 'ka10059', {
+            'dt': dt,
+            'stk_cd': stk_cd,
+            'amt_qty_tp': '1',   # 금액 기준
+            'trde_tp': '0',      # 순매수
+            'unit_tp': '1000',   # 천원 단위
+        })
+        return result.get('stk_invsr_orgn', [])
+
     def get_multiple_stocks(self, stock_codes: list[str]) -> dict[str, dict]:
         """여러 종목 기본정보 조회 (rate limit 대응)"""
         results: dict[str, dict] = {}

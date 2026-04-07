@@ -135,6 +135,7 @@ class AnalysisRunner:
             financials=self.ctx.financials,
             disclosures=self.ctx.disclosures,
             ml_prob=ml_prob,
+            investor_data=self.ctx.investor_trading,
         )
 
         # 지표 스냅샷 저장용
@@ -251,9 +252,11 @@ class AnalysisRunner:
 
         timing_vals = [r.score_detail.get("timing_raw", 50.0) for r in valid_results]
         factor_vals = [r.score_detail.get("factor_raw", 0.0) for r in valid_results]
+        inst_vals = [r.score_detail.get("institutional_raw", 0.0) for r in valid_results]
 
         timing_ranks = self._percentile_rank(timing_vals)
         factor_ranks = self._percentile_rank(factor_vals)
+        inst_ranks = self._percentile_rank(inst_vals)
 
         rows = []
         for i, r in enumerate(valid_results):
@@ -261,6 +264,7 @@ class AnalysisRunner:
                 r,
                 normalized_momentum=timing_ranks[i],
                 normalized_fundamental=factor_ranks[i],
+                normalized_institutional=inst_ranks[i],
             )
             mapped["scored_at"] = datetime.now().isoformat()
             rows.append(mapped)

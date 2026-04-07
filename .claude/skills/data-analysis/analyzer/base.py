@@ -33,6 +33,7 @@ class AnalysisContext:
     fundamentals: pd.DataFrame = field(default_factory=pd.DataFrame)
     financials: pd.DataFrame = field(default_factory=pd.DataFrame)
     disclosures: pd.DataFrame = field(default_factory=pd.DataFrame)
+    investor_trading: pd.DataFrame = field(default_factory=pd.DataFrame)
 
     def load_active_strategy(self) -> dict[str, Any]:
         """활성 전략을 로드하여 self.strategy에 저장."""
@@ -193,6 +194,29 @@ class AnalysisContext:
             self.disclosures = df[df["rcept_date"] >= cutoff_date]
         return self.disclosures
 
+    def load_investor_trading(self, days: int = 20) -> pd.DataFrame:
+        """최근 N거래일 투자자 매매동향 로드 (trading.investor_trading)."""
+        codes = self.universe["stock_code"].tolist()
+        cutoff = (date.today() - __import__('datetime').timedelta(days=days * 2)).isoformat()
+        resp = (
+            self.client.schema("trading")
+            .table("investor_trading")
+            .select(
+                "stock_code,trade_date,ind_invsr,frgnr_invsr,orgn,"
+                "fnnc_invt,insrnc,invtrt,etc_fnnc,bank,penfnd_etc,"
+                "samo_fund,natn,etc_corp,natfor"
+            )
+            .in_("stock_code", codes)
+            .gte("trade_date", cutoff)
+            .order("trade_date", desc=True)
+            .execute()
+        )
+        if resp.data:
+            df = pd.DataFrame(resp.data)
+            df["trade_date"] = pd.to_datetime(df["trade_date"])
+            self.investor_trading = df
+        return self.investor_trading
+
     def load_all(self) -> "AnalysisContext":
         """전체 데이터 일괄 로드."""
         self.load_active_strategy()
@@ -202,4 +226,5 @@ class AnalysisContext:
         self.load_fundamentals()
         self.load_financials(codes)
         self.load_disclosures()
+        self.load_investor_trading()
         return self
