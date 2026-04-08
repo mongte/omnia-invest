@@ -32,9 +32,9 @@
       "id": "task-17752275313N",
       "title": "[FE] shadcn/ui 설치 및 설정",
       "description": "**목표**:\npharos-lab 앱에 shadcn/ui를 설치하고 투자 플랫폼에 적합한 다크 테마를 설정한다.\n\n**요구사항**:\n1. shadcn/ui 초기화 (components.json 설정)\n2. 필수 의존성 설치: class-variance-authority, clsx, tailwind-merge, lucide-react, @radix-ui/*\n3. 기본 컴포넌트 설치: Button, Card, Badge, Separator, Tooltip, ScrollArea, Sheet, Tabs\n4. globals.css에 다크 테마 CSS 변수 정의 (투자 플랫폼 특성상 다크 테마 기본)\n\n**수락 기준**:\n- shadcn CLI가 pharos-lab 앱에서 정상 작동\n- 8개 이상 기본 컴포넌트 설치 및 import 가능\n- 다크 테마 CSS 변수가 globals.css에 정의됨\n- npx tsc --noEmit 통과\n\n**의존성**:\n- [BE] FSD 디렉토리 구조 스캐폴딩 완료 후 시작 가능",
-      "status": "IN_REVIEW",
+      "status": "DONE",
       "createdAt": "2026-04-03T14:45:31.089Z",
-      "updatedAt": "2026-04-03T15:05:58.330Z",
+      "updatedAt": "2026-04-08T05:05:48.142Z",
       "comments": [
         {
           "id": "comment-1775228556454",
