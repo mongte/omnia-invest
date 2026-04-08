@@ -43,7 +43,7 @@ export function HeroSection() {
 
           {/* 서브 헤드라인 */}
           <p className="mb-8 text-lg leading-relaxed text-muted-foreground sm:text-xl">
-            코스피 Top50 종목의 퀀트 스코어링부터 가상 투자까지.
+            코스피 Top200 종목의 퀀트 스코어링부터 가상 투자까지.
             <br className="hidden sm:block" />
             증권사 API 기반 실시간 데이터로 체계적 분석 도구를 경험하세요.
           </p>

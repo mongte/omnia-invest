@@ -362,12 +362,21 @@ export async function fetchOhlcv(stockId: string, days = 90): Promise<OHLCVData[
  * @param stockId - 조회할 종목 ID
  */
 export async function fetchStockDetail(stockId: string): Promise<StockDetail> {
-  const [scoreData, rankingHistory, disclosures, ohlcv] = await Promise.all([
-    fetchStockScore(stockId),
-    fetchRankingHistory(stockId),
-    fetchDisclosures(stockId),
-    fetchOhlcv(stockId),
-  ]);
+  const [scoreResult, rankingResult, disclosuresResult, ohlcvResult] =
+    await Promise.allSettled([
+      fetchStockScore(stockId),
+      fetchRankingHistory(stockId),
+      fetchDisclosures(stockId),
+      fetchOhlcv(stockId),
+    ]);
+
+  const scoreData =
+    scoreResult.status === 'fulfilled'
+      ? scoreResult.value
+      : { fundamental: 0, momentum: 0, disclosure: 0, institutional: 0, total: 0, scoreDescriptions: null };
+  const rankingHistory = rankingResult.status === 'fulfilled' ? rankingResult.value : [];
+  const disclosures = disclosuresResult.status === 'fulfilled' ? disclosuresResult.value : [];
+  const ohlcv = ohlcvResult.status === 'fulfilled' ? ohlcvResult.value : [];
 
   const disclosureIds = disclosures.map((d) => d.id);
   const llmSummaries = await fetchLlmSummaries(disclosureIds);

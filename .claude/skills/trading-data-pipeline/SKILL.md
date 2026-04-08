@@ -1,6 +1,6 @@
 ---
 name: trading-data-pipeline
-description: 코스피 Top50 종목의 OHLCV, 기본정보, 공시, 재무제표 데이터를 키움증권/OpenDART API로 수집하여 Supabase에 적재하는 ETL 파이프라인. 데이터 수집, 스케줄링, 백필, 동기화 작업 시 사용.
+description: 코스피 Top200 종목의 OHLCV, 기본정보, 공시, 재무제표 데이터를 키움증권/OpenDART API로 수집하여 Supabase에 적재하는 ETL 파이프라인. 데이터 수집, 스케줄링, 백필, 동기화 작업 시 사용.
 version: 1.0.0
 tags: [etl, trading, kiwoom, opendart, supabase, pipeline, kospi]
 ---
@@ -9,14 +9,14 @@ tags: [etl, trading, kiwoom, opendart, supabase, pipeline, kospi]
 
 ## Overview
 
-코스피 거래량 Top50 종목을 대상으로 키움증권 REST API와 OpenDART API에서 데이터를 수집하여 Supabase(PostgreSQL)에 적재하는 자동화 파이프라인.
+코스피 거래량 Top200 종목을 대상으로 키움증권 REST API와 OpenDART API에서 데이터를 수집하여 Supabase(PostgreSQL)에 적재하는 자동화 파이프라인.
 
 ## 아키텍처
 
 ```
 [로컬 PC — launchd]           [Supabase — pg_cron]
 키움증권 REST API              OpenDART REST API
-  ka10023 (Top50)                /list.json (공시)
+  ka10023 (Top200)               /list.json (공시)
   ka10001 (기본정보)             /fnlttSinglAcntAll.json (재무)
   ka10081 (일봉차트)
   ※ IP 등록 필수                 ※ IP 제한 없음
@@ -46,8 +46,8 @@ tags: [etl, trading, kiwoom, opendart, supabase, pipeline, kospi]
 
 | 테이블 | 건수 | 보존 | 용도 |
 |--------|------|------|------|
-| watch_universe | 50 | 최신만 | 거래량 Top50 감시 종목 |
-| stock_fundamentals | 50 | 최신 1건/종목 | PER, PBR, EPS, ROE, 시가총액 |
+| watch_universe | 200 | 최신만 | 거래량 Top200 감시 종목 |
+| stock_fundamentals | 200 | 최신 1건/종목 | PER, PBR, EPS, ROE, 시가총액 |
 | ohlcv_daily | ~8,000 | 1년 롤링 | 일봉 OHLCV (시가/고가/저가/종가/거래량) |
 | ohlcv_snapshot | 0 | - | 기술지표 스냅샷 (MA/RSI/MACD) — 미사용 |
 | disclosures | ~700 | 6개월 | OpenDART 공시 (자동 유형 분류) |
@@ -63,7 +63,7 @@ tags: [etl, trading, kiwoom, opendart, supabase, pipeline, kospi]
 | 단계 | API | 대상 테이블 |
 |------|-----|-----------|
 | 1 | ka10023 거래량급증 | trading.watch_universe |
-| 2 | ka10001 기본정보 (50종목) | trading.stock_fundamentals |
+| 2 | ka10001 기본정보 (200종목) | trading.stock_fundamentals |
 | 3 | OpenDART /list.json (어제~오늘) | trading.disclosures |
 | 4 | sync_to_public_stocks() | public.stocks |
 | 5 | sync_to_public_disclosures() | public.disclosures |
@@ -74,7 +74,7 @@ tags: [etl, trading, kiwoom, opendart, supabase, pipeline, kospi]
 
 | 단계 | API | 대상 테이블 |
 |------|-----|-----------|
-| 1 | ka10081 일봉차트 (50종목, 최근 3일) | trading.ohlcv_daily |
+| 1 | ka10081 일봉차트 (200종목, 최근 3일) | trading.ohlcv_daily |
 | 2 | ka10001 기본정보 (종가 업데이트) | trading.stock_fundamentals |
 
 ### monthly-financial-sync — 월간 재무제표
@@ -97,7 +97,7 @@ tags: [etl, trading, kiwoom, opendart, supabase, pipeline, kospi]
 
 | plist | 시간 (KST) | 스크립트 | 대상 |
 |-------|-----------|---------|------|
-| com.omnia.pre-market | 평일 07:50 | `daily_sync_kiwoom.py --job pre-market` | Top50 + 기본정보 |
+| com.omnia.pre-market | 평일 07:50 | `daily_sync_kiwoom.py --job pre-market` | Top200 + 기본정보 |
 | com.omnia.post-market | 평일 16:30 | `daily_sync_kiwoom.py --job post-market` | 일봉 + 종가 업데이트 |
 
 설치: `bash scripts/launchd/install.sh`
@@ -128,7 +128,7 @@ tags: [etl, trading, kiwoom, opendart, supabase, pipeline, kospi]
 | API ID | 이름 | URL | 용도 | 특징 |
 |--------|------|-----|------|------|
 | ka10001 | 주식기본정보 | `/api/dostk/stkinfo` | fundamentals | 종목당 1회 |
-| ka10023 | 거래량급증 | `/api/dostk/rkinfo` | Top50 선정 | 코스피 거래량순 |
+| ka10023 | 거래량급증 | `/api/dostk/rkinfo` | Top200 선정 | 코스피 거래량순 |
 | ka10081 | 주식일봉차트 | `/api/dostk/chart` | OHLCV 수집 | 600건/회, 연속조회 지원 |
 
 ### OpenDART
@@ -174,7 +174,7 @@ python3 scripts/collect_ohlcv_daily.py
 ```
 
 - ka10081 사용 (600건/회, 1년치 1회 호출로 충분)
-- 50종목 × ~245거래일 = ~12,000건
+- 200종목 × ~245거래일 = ~49,000건
 - Supabase REST API로 INSERT (ON CONFLICT ignore)
 
 ## Troubleshooting

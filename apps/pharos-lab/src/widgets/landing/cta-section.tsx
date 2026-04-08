@@ -26,7 +26,7 @@ export function CtaSection() {
         </h2>
 
         <p className="mx-auto mb-10 max-w-xl text-lg text-muted-foreground">
-          데이터 기반의 투자 결정. 코스피 Top50 종목의 퀀트 스코어를 지금
+          데이터 기반의 투자 결정. 코스피 Top200 종목의 퀀트 스코어를 지금
           바로 확인하세요.
         </p>
 

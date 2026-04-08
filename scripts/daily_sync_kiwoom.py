@@ -155,7 +155,7 @@ def log_sync(supabase_url: str, service_key: str, job_name: str, status: str, ro
 def run_pre_market(token: str, supabase_url: str, service_key: str) -> int:
     """
     장 시작 전:
-    1. ka10023 거래량급증 -> watch_universe UPSERT (Top50)
+    1. ka10023 거래량급증 -> watch_universe UPSERT (Top200)
     2. ka10001 기본정보 -> stock_fundamentals UPSERT
     """
     print('[pre-market] 시작')
@@ -230,7 +230,7 @@ def run_pre_market(token: str, supabase_url: str, service_key: str) -> int:
         print(f'  watch_universe UPSERT: {cnt}건')
         total_rows += cnt
 
-    # 2. 기본정보 (ka10001) - 50종목
+    # 2. 기본정보 (ka10001) - 200종목
     stock_codes = [r['stock_code'] for r in wu_records]
     print(f'  [2/2] ka10001 기본정보 {len(stock_codes)}종목 조회...')
     fund_records = []
@@ -240,12 +240,18 @@ def run_pre_market(token: str, supabase_url: str, service_key: str) -> int:
         try:
             info = kiwoom_post(token, 'ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
             detail = info.get('stk_info', {})
+            cur_price = parse_price(detail.get('cur_prc', ''))
+
+            # 장 시작 전/주말에는 cur_price=0 반환 → 기존 정상 데이터 보호
+            if cur_price == 0:
+                continue
+
             fund_records.append({
                 'stock_code': code,
                 'corp_name': detail.get('stk_nm', '').strip(),
                 'market': 'KOSPI',
                 'fetch_date': datetime.now().strftime('%Y-%m-%d'),
-                'cur_price': parse_price(detail.get('cur_prc', '')),
+                'cur_price': cur_price,
                 'per': _safe_float(detail.get('per')),
                 'pbr': _safe_float(detail.get('pbr')),
                 'eps': parse_price(detail.get('eps', '')),
@@ -520,6 +526,11 @@ def main() -> None:
     print('토큰 발급 중...')
     token = get_token(api_key, api_secret)
     print('토큰 발급 완료')
+
+    # 주말/공휴일 방어 (토=5, 일=6)
+    if datetime.now().weekday() >= 5:
+        print(f'[SKIP] 주말에는 실행하지 않습니다 ({datetime.now().strftime("%A")})')
+        sys.exit(0)
 
     # Job 실행
     started = datetime.now()

@@ -20,7 +20,7 @@ const FEATURES: FeatureCard[] = [
     title: '종목 스코어링',
     description: '퀀트 알고리즘 기반의 체계적 종목 분석',
     details: [
-      '코스피 Top50 퀀트 점수 분석',
+      '코스피 Top200 퀀트 점수 분석',
       '멀티팩터 스코어링 모델',
       '레이더 차트 시각화',
     ],

@@ -1,6 +1,6 @@
 """
 trading.ohlcv_daily 수집 스크립트
-watch_universe Top50 종목에 대해 키움 ka10005 일봉 API로 데이터 수집 후 Supabase에 적재.
+watch_universe Top200 종목에 대해 키움 ka10005 일봉 API로 데이터 수집 후 Supabase에 적재.
 
 실행:
     python3 scripts/collect_ohlcv_daily.py

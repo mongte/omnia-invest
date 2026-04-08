@@ -117,7 +117,7 @@ info "Python 패키지 설치 완료"
 if [[ "$OSTYPE" == "darwin"* ]]; then
     step "launchd 스케줄러 설정 (선택)"
     echo "  키움 데이터 수집 스케줄러를 등록하시겠습니까?"
-    echo "  - 평일 07:50 KST: pre-market (Top50 갱신)"
+    echo "  - 평일 07:50 KST: pre-market (Top200 갱신)"
     echo "  - 평일 16:30 KST: post-market (일봉 수집)"
     echo ""
     read -p "  스케줄러를 설치하시겠습니까? (y/n): " INSTALL_LAUNCHD

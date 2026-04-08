@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS trading.watch_universe (
   corp_code     TEXT,
   corp_name     TEXT        NOT NULL,
   market        TEXT        NOT NULL DEFAULT 'KOSPI',
-  universe_type TEXT        NOT NULL DEFAULT 'volume_top50',
+  universe_type TEXT        NOT NULL DEFAULT 'volume_top200',
   rank          INT,
   is_active     BOOLEAN     NOT NULL DEFAULT TRUE,
   selected_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),

@@ -23,7 +23,7 @@ AUTH_FILE = f'{PROJECT_ROOT}/.claude/auth/kiwoom.env'
 SUPABASE_ENV_FILE = f'{PROJECT_ROOT}/apps/pharos-lab/.env.local'
 BASE_URL = 'https://api.kiwoom.com'
 DELAY_SEC = 0.5
-TOP_N = 50
+TOP_N = 200
 
 
 # --- 유틸리티 ---
@@ -153,7 +153,7 @@ def log_sync(supabase_url: str, service_key: str, job_name: str, status: str, ro
 def run_pre_market(token: str, supabase_url: str, service_key: str) -> None:
     """
     장 시작 전:
-    1. ka10023 거래량급증 -> watch_universe UPSERT (Top50)
+    1. ka10023 거래량급증 -> watch_universe UPSERT (Top200)
     2. ka10001 기본정보 -> stock_fundamentals UPSERT
     """
     print('[pre-market] 시작')
@@ -184,7 +184,7 @@ def run_pre_market(token: str, supabase_url: str, service_key: str) -> None:
             'stock_code': stock_code,
             'corp_name': item.get('stk_nm', '').strip(),
             'market': 'KOSPI',
-            'universe_type': 'volume_top50',
+            'universe_type': 'volume_top200',
             'rank': i + 1,
             'is_active': True,
             'selected_at': datetime.now().isoformat(),
@@ -195,7 +195,7 @@ def run_pre_market(token: str, supabase_url: str, service_key: str) -> None:
         print(f'  watch_universe UPSERT: {cnt}건')
         total_rows += cnt
 
-    # 2. 기본정보 (ka10001) - 50종목
+    # 2. 기본정보 (ka10001) - 200종목
     stock_codes = [r['stock_code'] for r in wu_records]
     print(f'  [2/2] ka10001 기본정보 {len(stock_codes)}종목 조회...')
     fund_records = []

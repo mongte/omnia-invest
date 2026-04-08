@@ -24,7 +24,7 @@ AI 에이전트 기반 퀀트 투자 분석 플랫폼. Nx 모노레포로 구성
 
 ## 데이터 파이프라인
 
-코스피 Top50 종목 데이터를 자동 수집하여 Supabase에 적재합니다.
+코스피 Top200 종목 데이터를 자동 수집하여 Supabase에 적재합니다.
 
 ```
 [로컬 PC — launchd]              [Supabase — pg_cron]

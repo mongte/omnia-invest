@@ -11,10 +11,10 @@ interface StatItem {
 
 const STATS: StatItem[] = [
   {
-    value: 50,
+    value: 200,
     suffix: '+',
     label: '분석 종목',
-    description: '코스피 Top50 종목',
+    description: '코스피 Top200 종목',
   },
   {
     value: 12500,
