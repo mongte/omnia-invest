@@ -9,7 +9,8 @@ import {
   PriceChart,
 } from '@/widgets/dashboard';
 import type { PriceChartHandle } from '@/widgets/dashboard/price-chart';
-import { Skeleton } from '@/shared/ui';
+import { Skeleton, Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/shared/ui';
+import { HelpCircle } from 'lucide-react';
 import type { RankingListItem, PaginatedRankingList } from '@/shared/api/dashboard';
 import { fetchStockDetailClient, fetchRankingListClient } from '@/shared/api/dashboard-client';
 
@@ -39,6 +40,7 @@ interface WidgetCardProps {
   isLoading?: boolean;
   error?: string | null;
   loadingSkeleton?: React.ReactNode;
+  tooltip?: React.ReactNode;
 }
 
 function WidgetCard({
@@ -48,6 +50,7 @@ function WidgetCard({
   isLoading,
   error,
   loadingSkeleton,
+  tooltip,
 }: WidgetCardProps) {
   return (
     <div
@@ -59,7 +62,21 @@ function WidgetCard({
         .join(' ')}
     >
       <div className="px-4 pt-3 pb-2 border-b border-border shrink-0">
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+        <div className="flex items-center gap-1">
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          {tooltip && (
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="size-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help transition-colors" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-72">
+                  {tooltip}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </div>
       <div className="flex-1 overflow-auto p-3 min-h-0">
         {error ? (
@@ -255,6 +272,19 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
       {/* ① 종목 랭킹 — 좌상단 */}
       <WidgetCard
         title="종목 랭킹"
+        tooltip={
+          <div className="space-y-1.5">
+            <p className="font-medium text-xs">종합 점수 기반 순위</p>
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-3">
+              <li>펀더멘털 (30%) — PER·PBR·ROE·매출성장률</li>
+              <li>타이밍 (30%) — RSI·MACD·볼린저밴드·이격도</li>
+              <li>ML 예측 (40%) — 5거래일 상승 확률</li>
+            </ul>
+            <p className="text-xs text-muted-foreground/80 border-t border-border/50 pt-1">
+              0~100점, 높을수록 매수 유리
+            </p>
+          </div>
+        }
         isLoading={allStocks.length === 0}
         loadingSkeleton={<RankingListSkeleton />}
       >

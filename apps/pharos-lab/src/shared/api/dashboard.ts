@@ -37,18 +37,30 @@ export interface RankingListItem
 export type DisclosureSentiment = 'positive' | 'negative' | 'neutral';
 
 /**
- * 공시의 type + importance 기반으로 호재/악재/중립을 판정합니다.
- * - 호재(positive): earnings(high) + buyback + dividend
- * - 악재(negative): capital(유증) + ownership(대량매도 관련, high importance)
- * - 중립(neutral): 나머지
+ * 공시의 type 기반으로 호재/악재/중립을 판정합니다.
+ * - 호재(positive): earnings, dividend, buyback, contract, ir
+ * - 악재(negative): capital, issuance, litigation, warning
+ * - 중립(neutral): governance, ownership, audit, other
  */
 export function getDisclosureSentiment(
   type: DisclosureType,
-  importance: DisclosureEvent['importance'],
+  _importance: DisclosureEvent['importance'],
 ): DisclosureSentiment {
-  if (type === 'earnings' && importance === 'high') return 'positive';
-  if (type === 'ownership' && importance === 'high') return 'negative';
-  return 'neutral';
+  switch (type) {
+    case 'earnings':
+    case 'dividend':
+    case 'buyback':
+    case 'contract':
+    case 'ir':
+      return 'positive';
+    case 'capital':
+    case 'issuance':
+    case 'litigation':
+    case 'warning':
+      return 'negative';
+    default:
+      return 'neutral';
+  }
 }
 
 export interface StockDetail {
@@ -64,8 +76,12 @@ export interface StockDetail {
 // ---------------------------------------------------------------------------
 
 function toDisclosureType(raw: string): DisclosureType {
-  if (raw === 'earnings' || raw === 'ownership') return raw;
-  return 'other';
+  const valid: DisclosureType[] = [
+    'earnings', 'dividend', 'capital', 'buyback', 'ownership',
+    'contract', 'litigation', 'ir', 'governance', 'warning',
+    'issuance', 'audit', 'other',
+  ];
+  return (valid as string[]).includes(raw) ? (raw as DisclosureType) : 'other';
 }
 
 function toImportance(raw: string): 'high' | 'medium' | 'low' {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import type { DisclosureEvent, DisclosureType } from '@/entities/stock';
 import type { DisclosureSentiment } from '@/shared/api/dashboard';
 import { getDisclosureSentiment } from '@/shared/api/dashboard';
@@ -15,28 +16,41 @@ interface DisclosureTimelineProps {
 
 const TYPE_LABEL: Record<DisclosureType, string> = {
   earnings: '실적',
+  dividend: '배당',
+  capital: '증자/CB',
+  buyback: '자사주',
   ownership: '지분변동',
+  contract: '계약',
+  litigation: '소송',
+  ir: 'IR',
+  governance: '주주총회',
+  warning: '경고',
+  issuance: '증권발행',
+  audit: '감사',
   other: '기타',
 };
 
 const SENTIMENT_CONFIG: Record<
   DisclosureSentiment,
-  { label: string; color: string; dot: string }
+  { label: string; color: string; dot: string; glow: string }
 > = {
   positive: {
     label: '호재',
     color: 'text-green-500',
     dot: 'bg-green-500',
+    glow: 'ring-green-500/50 shadow-green-500/40',
   },
   negative: {
     label: '악재',
     color: 'text-[hsl(var(--chart-down))]',
     dot: 'bg-[hsl(var(--chart-down))]',
+    glow: 'ring-red-500/50 shadow-red-500/40',
   },
   neutral: {
     label: '중립',
     color: 'text-muted-foreground',
     dot: 'bg-muted-foreground',
+    glow: 'ring-muted-foreground/50 shadow-gray-400/40',
   },
 };
 
@@ -52,6 +66,17 @@ export function DisclosureTimeline({
   onSelectDisclosure,
   onScrollToDisclosure,
 }: DisclosureTimelineProps) {
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // 차트 마커 클릭으로 selectedDisclosureId가 바뀌면 해당 항목으로 스크롤
+  useEffect(() => {
+    if (!selectedDisclosureId) return;
+    const el = itemRefs.current.get(selectedDisclosureId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [selectedDisclosureId]);
+
   function handleSelect(id: string) {
     onSelectDisclosure(id);
     onScrollToDisclosure?.(id);
@@ -66,17 +91,28 @@ export function DisclosureTimeline({
         const isLast = idx === disclosures.length - 1;
 
         return (
-          <div key={disc.id} className="flex gap-3">
+          <div
+            key={disc.id}
+            ref={(el) => {
+              if (el) {
+                itemRefs.current.set(disc.id, el);
+              } else {
+                itemRefs.current.delete(disc.id);
+              }
+            }}
+            className="flex gap-3"
+          >
             {/* 타임라인 라인 */}
             <div className="flex flex-col items-center shrink-0">
               <button
                 type="button"
                 onClick={() => handleSelect(disc.id)}
                 className={cn(
-                  'size-2.5 rounded-full mt-1.5 shrink-0 transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                  'rounded-full shrink-0 transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                   sentimentConfig.dot,
-                  IMPORTANCE_RING[disc.importance],
-                  isSelected && 'scale-125'
+                  isSelected
+                    ? cn('size-3.5 scale-110 ring-2 ring-offset-2 ring-offset-card shadow-[0_0_6px]', sentimentConfig.glow)
+                    : cn('size-2.5 mt-1.5', IMPORTANCE_RING[disc.importance])
                 )}
                 aria-label={`${disc.title} 공시 선택`}
               />
@@ -91,7 +127,7 @@ export function DisclosureTimeline({
               onClick={() => handleSelect(disc.id)}
               className={cn(
                 'flex-1 text-left pb-3 rounded-sm transition-colors hover:bg-accent/30 px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                isSelected && 'bg-accent/30'
+                isSelected && 'bg-accent/50 shadow-sm border-l-2 border-primary'
               )}
             >
               <p className="text-xs text-muted-foreground">{disc.date}</p>

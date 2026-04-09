@@ -28,7 +28,20 @@ export interface StockData {
   scoreDescriptions: string[] | null;
 }
 
-export type DisclosureType = 'earnings' | 'ownership' | 'other';
+export type DisclosureType =
+  | 'earnings'   // 실적/보고서
+  | 'dividend'   // 배당
+  | 'capital'    // 유상증자/CB 등
+  | 'buyback'    // 자기주식취득
+  | 'ownership'  // 지분변동
+  | 'contract'   // 계약체결
+  | 'litigation' // 소송/제재
+  | 'ir'         // IR/공정공시
+  | 'governance' // 주주총회/이사회
+  | 'warning'    // 관리종목/투자경고
+  | 'issuance'   // 증권발행
+  | 'audit'      // 감사보고서
+  | 'other';
 
 export interface DisclosureEvent {
   id: string;

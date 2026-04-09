@@ -7,6 +7,7 @@ import {
   PolarAngleAxis,
   ResponsiveContainer,
 } from 'recharts';
+import { HelpCircle } from 'lucide-react';
 import type { StockScore } from '@/entities/stock';
 import {
   Tooltip,
@@ -129,6 +130,48 @@ const FIELD_SUBTITLE: Record<string, string> = {
   ML확률: 'AI 예측 향후 5일 상승 확률',
 };
 
+const FIELD_HELP: Record<string, { title: string; description: string; calculation: string }> = {
+  시그널: {
+    title: '매매 시그널',
+    description: '팩터·타이밍·ML확률을 종합하여 산출한 최종 매매 판단입니다.',
+    calculation: '비보유 시와 보유 시 행동이 다릅니다. strong_buy~strong_sell 6단계로 나뉩니다.',
+  },
+  팩터: {
+    title: '펀더멘털 팩터 점수',
+    description: 'PER, PBR, ROE, 영업이익률 등 밸류에이션과 수익성 지표를 종합한 점수입니다.',
+    calculation: '0~100점. 60점 이상 양호, 30~60 보통, 30 미만 약함.',
+  },
+  타이밍: {
+    title: '기술적 타이밍 점수',
+    description: 'RSI, MACD, 볼린저밴드 등 기술적 지표로 현재 매수/매도 적기를 판단합니다.',
+    calculation: '0~100점. 60 이상 매수 타이밍, 40~60 중립, 40 미만 매도 타이밍.',
+  },
+  ML확률: {
+    title: 'AI 상승 확률',
+    description: '머신러닝 모델이 예측한 향후 5거래일 내 주가 상승 확률입니다.',
+    calculation: '0~1. 0.65 이상 강한 상승, 0.55~0.65 상승 예측, 0.45~0.55 중립, 0.35 미만 강한 하락.',
+  },
+};
+
+const GRID_HELP: Record<keyof Omit<StockScore, 'total'>, { title: string; description: string }> = {
+  fundamental: {
+    title: '펀더멘털',
+    description: 'PER·PBR·ROE·영업이익률 기반 가치 평가 종합 점수 (0~100)',
+  },
+  momentum: {
+    title: '모멘텀',
+    description: '가격 추세, 거래량 변화, 이동평균선 기반 추세 강도 (0~100)',
+  },
+  disclosure: {
+    title: '공시활동',
+    description: '최근 공시 빈도와 호재/악재 비율로 산출한 공시 건전성 점수 (0~100)',
+  },
+  institutional: {
+    title: '기관관심',
+    description: '기관·외국인 순매수 추이와 지분율 변동 기반 관심도 점수 (0~100)',
+  },
+};
+
 function isSignalValue(value: string): value is SignalValue {
   return value in SIGNAL_CONFIG;
 }
@@ -229,11 +272,24 @@ export function ScoreRadar({ stock }: ScoreRadarProps) {
               keyof typeof SCORE_LABELS
             >
           ).map((key) => (
-            <div key={key} className="flex items-center justify-between px-2 py-1 rounded bg-muted/50">
-              <span className="text-xs text-muted-foreground">
-                {SCORE_LABELS[key]}
-              </span>
-              <span className="text-xs font-semibold text-foreground">
+            <div key={key} className="flex items-center justify-between px-2.5 py-1.5 rounded bg-muted/50">
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground">
+                  {SCORE_LABELS[key]}
+                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="size-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help transition-colors" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-56">
+                    <div className="space-y-1">
+                      <p className="font-medium text-xs">{GRID_HELP[key].title}</p>
+                      <p className="text-xs text-muted-foreground">{GRID_HELP[key].description}</p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <span className="text-sm font-semibold text-foreground">
                 {stock.score[key]}
               </span>
             </div>
@@ -248,9 +304,25 @@ export function ScoreRadar({ stock }: ScoreRadarProps) {
                 className="flex items-center justify-between px-2.5 py-2 rounded-md bg-muted/60 border border-border/50"
               >
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-xs text-muted-foreground">{field.label}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">{field.label}</span>
+                    {FIELD_HELP[field.label] && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="size-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help transition-colors" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-64">
+                          <div className="space-y-1">
+                            <p className="font-medium text-sm">{FIELD_HELP[field.label].title}</p>
+                            <p className="text-xs text-muted-foreground">{FIELD_HELP[field.label].description}</p>
+                            <p className="text-xs text-muted-foreground/80 border-t border-border/50 pt-1">{FIELD_HELP[field.label].calculation}</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                   {field.subtitle && (
-                    <span className="text-[10px] text-muted-foreground/60 leading-tight">
+                    <span className="text-xs text-muted-foreground/60 leading-tight">
                       {field.subtitle}
                     </span>
                   )}
@@ -263,12 +335,12 @@ export function ScoreRadar({ stock }: ScoreRadarProps) {
                       {(() => {
                         const interp = interpretValue(field.label, field.value);
                         return interp ? (
-                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${INTERPRET_STYLES[interp.color]}`}>
+                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${INTERPRET_STYLES[interp.color]}`}>
                             {interp.text}
                           </span>
                         ) : null;
                       })()}
-                      <span className="text-xs font-semibold text-foreground tabular-nums">
+                      <span className="text-sm font-semibold text-foreground tabular-nums">
                         {field.value}
                       </span>
                     </div>

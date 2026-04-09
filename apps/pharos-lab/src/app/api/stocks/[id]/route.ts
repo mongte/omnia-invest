@@ -15,17 +15,20 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseServer } from '@/shared/api/supabase-server';
-import type { DisclosureEvent, OHLCVData, RankingHistory } from '@/entities/stock/types';
+import type { DisclosureEvent, DisclosureType, OHLCVData, RankingHistory } from '@/entities/stock/types';
 import type { RankingListItem } from '@/shared/api/dashboard';
 
 const CACHE_CONTROL = 'public, s-maxage=300, stale-while-revalidate=600';
 
-type DisclosureType = 'earnings' | 'ownership' | 'other';
 type Importance = 'high' | 'medium' | 'low';
 
 function toDisclosureType(raw: string): DisclosureType {
-  if (raw === 'earnings' || raw === 'ownership') return raw;
-  return 'other';
+  const valid: DisclosureType[] = [
+    'earnings', 'dividend', 'capital', 'buyback', 'ownership',
+    'contract', 'litigation', 'ir', 'governance', 'warning',
+    'issuance', 'audit', 'other',
+  ];
+  return (valid as string[]).includes(raw) ? (raw as DisclosureType) : 'other';
 }
 
 function toImportance(raw: string): Importance {

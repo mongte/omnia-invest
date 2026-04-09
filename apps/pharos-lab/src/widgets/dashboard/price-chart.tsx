@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useImperativeHandle, useRef, forwardRef } from 'react';
-import type { ISeriesMarkersPluginApi, Time } from 'lightweight-charts';
-import type { OHLCVData, DisclosureEvent } from '@/entities/stock';
+import type { ISeriesMarkersPluginApi, SeriesMarkerShape, Time } from 'lightweight-charts';
+import type { OHLCVData, DisclosureEvent, DisclosureType } from '@/entities/stock';
 import { getDisclosureSentiment } from '@/shared/api/dashboard';
 
 interface PriceChartProps {
@@ -17,13 +17,62 @@ export interface PriceChartHandle {
   scrollToDisclosure: (disclosureId: string) => void;
 }
 
+const MARKER_TYPE_LABEL: Record<DisclosureType, string> = {
+  earnings: '실적',
+  dividend: '배당',
+  capital: '증자',
+  buyback: '자사주',
+  ownership: '지분',
+  contract: '계약',
+  litigation: '소송',
+  ir: 'IR',
+  governance: '주총',
+  warning: '경고',
+  issuance: '발행',
+  audit: '감사',
+  other: '기타',
+};
+
 /** 공시 sentiment → 마커 색상 */
 function getMarkerColor(disc: DisclosureEvent, isSelected: boolean): string {
   if (isSelected) return '#60a5fa';
   const sentiment = getDisclosureSentiment(disc.type, disc.importance);
   if (sentiment === 'positive') return '#22c55e';
   if (sentiment === 'negative') return '#ef4444';
-  return '#6b7280';
+  return '#9ca3af';
+}
+
+/** 공시 sentiment → 마커 모양 */
+function getMarkerShape(disc: DisclosureEvent): SeriesMarkerShape {
+  const sentiment = getDisclosureSentiment(disc.type, disc.importance);
+  if (sentiment === 'positive') return 'arrowUp';
+  if (sentiment === 'negative') return 'arrowDown';
+  return 'circle';
+}
+
+/** 마커 배열 생성 헬퍼 */
+function buildMarkers(
+  disclosures: DisclosureEvent[],
+  selectedDisclosureId: string | null,
+) {
+  return disclosures
+    .filter(
+      (disc) =>
+        getDisclosureSentiment(disc.type, disc.importance) !== 'neutral' ||
+        disc.id === selectedDisclosureId,
+    )
+    .map((disc) => {
+      const selected = disc.id === selectedDisclosureId;
+      return {
+        time: disc.date as Time,
+        position: 'aboveBar' as const,
+        color: getMarkerColor(disc, selected),
+        shape: getMarkerShape(disc),
+        text: selected ? (MARKER_TYPE_LABEL[disc.type] ?? '') : '',
+        size: selected ? 2 : 1,
+        id: disc.id,
+      };
+    });
 }
 
 type IChartApi = Awaited<typeof import('lightweight-charts')>['createChart'] extends (
@@ -31,6 +80,8 @@ type IChartApi = Awaited<typeof import('lightweight-charts')>['createChart'] ext
 ) => infer R
   ? R
   : never;
+
+type CreateSeriesMarkersFn = Awaited<typeof import('lightweight-charts')>['createSeriesMarkers'];
 
 export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
   function PriceChart(
@@ -40,34 +91,50 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  const createSeriesMarkersRef = useRef<CreateSeriesMarkersFn | null>(null);
+  const seriesRef = useRef<ReturnType<IChartApi['addSeries']> | null>(null);
   const onSelectRef = useRef(onSelectDisclosure);
   onSelectRef.current = onSelectDisclosure;
+
+  // 현재 선택 ID를 ref로 유지 (handleClick에서 최신값 참조)
+  const selectedIdRef = useRef(selectedDisclosureId);
+  selectedIdRef.current = selectedDisclosureId;
 
   // ohlcv 날짜 → index 맵 (스크롤 계산용)
   const ohlcvDateIndexRef = useRef<Map<string, number>>(new Map());
 
+  // disclosures를 ref로도 유지 (scrollToDisclosure 콜백 안정성)
+  const disclosuresRef = useRef(disclosures);
+  disclosuresRef.current = disclosures;
+
   const scrollToDisclosure = useCallback(
     (disclosureId: string) => {
-      const disc = disclosures.find((d) => d.id === disclosureId);
+      const disc = disclosuresRef.current.find((d) => d.id === disclosureId);
       if (!disc || !chartRef.current) return;
 
       const dateIndex = ohlcvDateIndexRef.current.get(disc.date);
       if (dateIndex === undefined) return;
 
-      // 전체 ohlcv 길이 기준으로 끝에서 몇 칸 앞인지 계산
       const totalBars = ohlcvDateIndexRef.current.size;
-      // scrollToPosition: 양수 = 오른쪽(최신), 음수 = 왼쪽(과거)
-      // 0 = 마지막 바가 오른쪽 끝에 정렬된 기준
       const barsFromEnd = totalBars - 1 - dateIndex;
-      const offset = -(barsFromEnd - 5); // 해당 날짜를 차트 우측에서 5칸 여유 두고 표시
-      chartRef.current.timeScale().scrollToPosition(offset, true);
+
+      // 현재 보이는 바 수를 기준으로 가운데 배치
+      const timeScale = chartRef.current.timeScale();
+      const visibleRange = timeScale.getVisibleLogicalRange();
+      const visibleBars = visibleRange
+        ? Math.round(visibleRange.to - visibleRange.from)
+        : 50;
+      const halfVisible = Math.round(visibleBars / 2);
+      const offset = -(barsFromEnd - halfVisible);
+      timeScale.scrollToPosition(offset, true);
     },
-    [disclosures]
+    [],
   );
 
   // 외부에서 scrollToDisclosure 호출 가능하도록 ref 노출
   useImperativeHandle(ref, () => ({ scrollToDisclosure }), [scrollToDisclosure]);
 
+  // useEffect #1: 차트 생성 (ohlcv / disclosures 변경 시에만)
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -78,6 +145,7 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
       ({ createChart, CandlestickSeries, createSeriesMarkers }) => {
         if (cancelled || !containerRef.current) return;
 
+        createSeriesMarkersRef.current = createSeriesMarkers;
         const container = containerRef.current;
         const chart = createChart(container, {
           layout: {
@@ -112,6 +180,7 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
           wickUpColor: 'hsl(142 71% 45%)',
           wickDownColor: 'hsl(0 72% 51%)',
         });
+        seriesRef.current = series;
 
         // ohlcv 날짜 인덱스 맵 구성
         const dateIndexMap = new Map<string, number>();
@@ -120,7 +189,7 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
 
         series.setData(
           ohlcv.map((d) => ({
-            time: d.time as import('lightweight-charts').Time,
+            time: d.time as Time,
             open: d.open,
             high: d.high,
             low: d.low,
@@ -128,18 +197,19 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
           }))
         );
 
-        // 공시 마커 생성 (호재/악재/중립 색상)
-        const markers = disclosures.map((disc) => ({
-          time: disc.date as import('lightweight-charts').Time,
-          position: 'aboveBar' as const,
-          color: getMarkerColor(disc, disc.id === selectedDisclosureId),
-          shape: 'arrowDown' as const,
-          text: '',
-          id: disc.id,
-        }));
-
+        // 초기 마커 생성
+        const markers = buildMarkers(disclosures, selectedIdRef.current);
         const markersPlugin = createSeriesMarkers(series, markers);
         markersPluginRef.current = markersPlugin;
+
+        // 마커 클릭 이벤트: 공시 선택 + 가운데 스크롤
+        const handleClick = (param: import('lightweight-charts').MouseEventParams) => {
+          if (typeof param.hoveredObjectId === 'string' && param.hoveredObjectId !== '') {
+            onSelectRef.current(param.hoveredObjectId);
+            scrollToDisclosure(param.hoveredObjectId);
+          }
+        };
+        chart.subscribeClick(handleClick);
 
         chart.timeScale().fitContent();
 
@@ -151,10 +221,13 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
         resizeObserver.observe(container);
 
         cleanup = () => {
+          chart.unsubscribeClick(handleClick);
           resizeObserver.disconnect();
           chart.remove();
           chartRef.current = null;
           markersPluginRef.current = null;
+          seriesRef.current = null;
+          createSeriesMarkersRef.current = null;
         };
       }
     );
@@ -163,7 +236,14 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
       cancelled = true;
       cleanup?.();
     };
-  }, [ohlcv, disclosures, selectedDisclosureId]);
+  }, [ohlcv, disclosures, scrollToDisclosure]);
+
+  // useEffect #2: 마커만 업데이트 (선택 변경 시 — 차트 재생성 없이)
+  useEffect(() => {
+    if (!markersPluginRef.current) return;
+    const markers = buildMarkers(disclosures, selectedDisclosureId);
+    markersPluginRef.current.setMarkers(markers);
+  }, [selectedDisclosureId, disclosures]);
 
   return (
     <div
