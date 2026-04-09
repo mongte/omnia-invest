@@ -1,5 +1,7 @@
 'use client';
 
+import { useRef, useEffect } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RankingListItem } from '@/shared/api/dashboard';
 import { cn } from '@/shared/lib/utils';
 
@@ -7,6 +9,9 @@ interface RankingListProps {
   stocks: RankingListItem[];
   selectedStockId: string;
   onSelectStock: (id: string) => void;
+  onLoadMore: () => void;
+  hasMore: boolean;
+  isLoadingMore: boolean;
 }
 
 function ScoreBar({ score }: { score: number }) {
@@ -74,83 +79,132 @@ export function RankingList({
   stocks,
   selectedStockId,
   onSelectStock,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
 }: RankingListProps) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: stocks.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72,
+    overscan: 5,
+  });
+
+  // 하단 근접 시 다음 페이지 로드
+  useEffect(() => {
+    const virtualItems = rowVirtualizer.getVirtualItems();
+    const lastItem = virtualItems[virtualItems.length - 1];
+    if (!lastItem) return;
+    if (lastItem.index >= stocks.length - 10 && hasMore && !isLoadingMore) {
+      onLoadMore();
+    }
+  }, [rowVirtualizer.getVirtualItems(), stocks.length, hasMore, isLoadingMore, onLoadMore]);
+
   return (
-    <div className="flex flex-col gap-1 overflow-auto">
-      {stocks.map((stock, index) => (
-        <button
-          key={stock.id}
-          type="button"
-          onClick={() => onSelectStock(stock.id)}
-          className={cn(
-            'w-full text-left px-3 py-2.5 rounded-md transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-            selectedStockId === stock.id && 'bg-accent'
-          )}
-        >
-          <div className="flex items-center gap-2">
-            {/* 스코어 순위 (리스트 순서 기반) */}
-            <div className="flex flex-col items-center shrink-0 gap-0.5">
-              <span
+    <div ref={parentRef} className="overflow-auto h-full">
+      <div
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const stock = stocks[virtualRow.index];
+          const index = virtualRow.index;
+          return (
+            <div
+              key={stock.id}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => onSelectStock(stock.id)}
                 className={cn(
-                  'inline-flex items-center justify-center size-5 rounded text-xs font-bold',
-                  index < 3
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
+                  'w-full h-full text-left px-3 py-2.5 rounded-md transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                  selectedStockId === stock.id && 'bg-accent'
                 )}
               >
-                {index + 1}
-              </span>
-              <RankChangeBadge
-                delta={stock.rankChange?.delta ?? null}
-                previousRank={stock.rankChange?.previousRank ?? null}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {stock.name}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
-                    {stock.code}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-center shrink-0 gap-0.5">
+                    <span
+                      className={cn(
+                        'inline-flex items-center justify-center size-5 rounded text-xs font-bold',
+                        index < 3
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {index + 1}
+                    </span>
+                    <RankChangeBadge
+                      delta={stock.rankChange?.delta ?? null}
+                      previousRank={stock.rankChange?.previousRank ?? null}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {stock.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {stock.code}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-xs font-medium text-foreground">
+                          {stock.price.toLocaleString()}
+                        </span>
+                        <span
+                          className={cn(
+                            'text-xs font-medium',
+                            stock.changeRate >= 0
+                              ? 'text-[hsl(var(--chart-up))]'
+                              : 'text-[hsl(var(--chart-down))]'
+                          )}
+                        >
+                          {stock.changeRate >= 0 ? '+' : ''}
+                          {stock.changeRate.toFixed(2)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {stock.volume != null && (
+                        <span className="text-[10px] text-muted-foreground">
+                          거래량 {stock.volume.toLocaleString()}
+                        </span>
+                      )}
+                      {stock.rank != null && (
+                        <span className="text-[10px] text-muted-foreground">
+                          거래량순위 {stock.rank}위
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-1">
+                      <ScoreBar score={stock.score.total} />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs font-medium text-foreground">
-                    {stock.price.toLocaleString()}
-                  </span>
-                  <span
-                    className={cn(
-                      'text-xs font-medium',
-                      stock.changeRate >= 0
-                        ? 'text-[hsl(var(--chart-up))]'
-                        : 'text-[hsl(var(--chart-down))]'
-                    )}
-                  >
-                    {stock.changeRate >= 0 ? '+' : ''}
-                    {stock.changeRate.toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                {stock.volume != null && (
-                  <span className="text-[10px] text-muted-foreground">
-                    거래량 {stock.volume.toLocaleString()}
-                  </span>
-                )}
-                {stock.rank != null && (
-                  <span className="text-[10px] text-muted-foreground">
-                    거래량순위 {stock.rank}위
-                  </span>
-                )}
-              </div>
-              <div className="mt-1">
-                <ScoreBar score={stock.score.total} />
-              </div>
+              </button>
             </div>
-          </div>
-        </button>
-      ))}
+          );
+        })}
+      </div>
+      {isLoadingMore && (
+        <div className="flex justify-center py-3">
+          <div className="size-4 rounded-full border-2 border-muted border-t-primary animate-spin" />
+        </div>
+      )}
     </div>
   );
 }

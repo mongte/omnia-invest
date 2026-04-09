@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import {
   RankingList,
   ScoreRadar,
@@ -10,8 +10,10 @@ import {
 } from '@/widgets/dashboard';
 import type { PriceChartHandle } from '@/widgets/dashboard/price-chart';
 import { Skeleton } from '@/shared/ui';
-import type { RankingListItem } from '@/shared/api/dashboard';
-import { fetchStockDetailClient } from '@/shared/api/dashboard-client';
+import type { RankingListItem, PaginatedRankingList } from '@/shared/api/dashboard';
+import { fetchStockDetailClient, fetchRankingListClient } from '@/shared/api/dashboard-client';
+
+const PAGE_SIZE = 50;
 
 interface DashboardViewProps {
   initialStocks: RankingListItem[];
@@ -179,6 +181,33 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
   // 차트 스크롤 연동용 ref
   const priceChartRef = useRef<PriceChartHandle>(null);
 
+  // 랭킹 목록 무한 스크롤 — initialData로 서버 SSR 데이터 즉시 표시
+  const {
+    data: rankingData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['stocks', 'ranking'],
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      fetchRankingListClient(PAGE_SIZE, pageParam),
+    initialPageParam: 0 as number,
+    getNextPageParam: (lastPage: PaginatedRankingList, allPages: PaginatedRankingList[]) =>
+      lastPage.hasMore ? allPages.length * PAGE_SIZE : undefined,
+    initialData: {
+      pages: [{ items: initialStocks, hasMore: initialStocks.length === PAGE_SIZE }],
+      pageParams: [0],
+    },
+  });
+
+  const allStocksRaw = rankingData?.pages.flatMap((page) => page.items) ?? initialStocks;
+  const seenIds = new Set<string>();
+  const allStocks = allStocksRaw.filter((s) => {
+    if (seenIds.has(s.id)) return false;
+    seenIds.add(s.id);
+    return true;
+  });
+
   // 선택 종목 상세 데이터 — useQuery로 전환
   // initialData를 활용하여 초기 종목은 서버 props 데이터를 즉시 표시
   const {
@@ -191,7 +220,6 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
     enabled: !!selectedStockId,
     staleTime: 5 * 60 * 1000, // 5분: 동일 종목 재클릭 시 네트워크 요청 없음
   });
-
 
   // 에러 메시지 변환
   const detailError = detailQueryError
@@ -210,11 +238,11 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
     priceChartRef.current?.scrollToDisclosure(disclosureId);
   }
 
-  // 현재 선택된 종목 정보: 상세 데이터 우선, 없으면 initialStocks에서 조회
+  // 현재 선택된 종목 정보: 상세 데이터 우선, 없으면 allStocks에서 조회
   const displayStock =
     detailData?.stock ??
-    initialStocks.find((s) => s.id === selectedStockId) ??
-    initialStocks[0] ??
+    allStocks.find((s) => s.id === selectedStockId) ??
+    allStocks[0] ??
     null;
 
   const disclosures = detailData?.disclosures ?? [];
@@ -227,13 +255,16 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
       {/* ① 종목 랭킹 — 좌상단 */}
       <WidgetCard
         title="종목 랭킹"
-        isLoading={initialStocks.length === 0}
+        isLoading={allStocks.length === 0}
         loadingSkeleton={<RankingListSkeleton />}
       >
         <RankingList
-          stocks={initialStocks}
+          stocks={allStocks}
           selectedStockId={selectedStockId}
           onSelectStock={handleSelectStock}
+          onLoadMore={fetchNextPage}
+          hasMore={hasNextPage ?? false}
+          isLoadingMore={isFetchingNextPage}
         />
       </WidgetCard>
 

@@ -71,11 +71,12 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let cancelled = false;
     let cleanup: (() => void) | undefined;
 
     void import('lightweight-charts').then(
       ({ createChart, CandlestickSeries, createSeriesMarkers }) => {
-        if (!containerRef.current) return;
+        if (cancelled || !containerRef.current) return;
 
         const container = containerRef.current;
         const chart = createChart(container, {
@@ -159,26 +160,10 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
     );
 
     return () => {
+      cancelled = true;
       cleanup?.();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ohlcv]);
-
-  // 마커 업데이트 (공시 선택 변경 시 — 호재/악재/중립/선택 색상)
-  useEffect(() => {
-    if (!markersPluginRef.current) return;
-
-    const markers = disclosures.map((disc) => ({
-      time: disc.date as import('lightweight-charts').Time,
-      position: 'aboveBar' as const,
-      color: getMarkerColor(disc, disc.id === selectedDisclosureId),
-      shape: 'arrowDown' as const,
-      text: '',
-      id: disc.id,
-    }));
-
-    markersPluginRef.current.setMarkers(markers);
-  }, [disclosures, selectedDisclosureId]);
+  }, [ohlcv, disclosures, selectedDisclosureId]);
 
   return (
     <div

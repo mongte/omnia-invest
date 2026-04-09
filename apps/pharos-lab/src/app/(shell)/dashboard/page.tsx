@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const initialStocks = await fetchRankingList(50);
+  const { items: initialStocks } = await fetchRankingList(50, 0);
 
   return <DashboardView initialStocks={initialStocks} />;
 }

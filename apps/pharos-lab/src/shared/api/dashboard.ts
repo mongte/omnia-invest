@@ -6,6 +6,7 @@
  */
 
 import { supabase } from './supabase';
+import { fetchRankMaps } from './ranking-utils';
 import type {
   StockData,
   DisclosureEvent,
@@ -81,41 +82,45 @@ function toLlmSentiment(raw: string): LlmSentiment {
 // 초기 랭킹 목록 조회
 // ---------------------------------------------------------------------------
 
+export interface PaginatedRankingList {
+  items: RankingListItem[];
+  hasMore: boolean;
+}
+
 /**
  * 상위 N개 종목 랭킹 목록을 조회합니다.
  * stocks 테이블과 stock_scores 테이블을 조인합니다.
  *
  * @param limit - 조회할 상위 종목 수 (기본값: 50)
+ * @param offset - 조회 시작 오프셋 (기본값: 0)
  */
-export async function fetchRankingList(limit = 50): Promise<RankingListItem[]> {
-  // stock_scores.total 내림차순 정렬 후 상위 N개 stock_id 획득
+export async function fetchRankingList(
+  limit = 50,
+  offset = 0,
+): Promise<PaginatedRankingList> {
+  // stock_scores.total 내림차순 정렬 후 range로 페이지 조회
   const { data: scores, error: scoresError } = await supabase
     .from('stock_scores')
     .select('stock_id, fundamental, momentum, disclosure, institutional, total, score_descriptions')
     .order('total', { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
   if (scoresError) {
     throw new Error(`[dashboard] fetchRankingList scores: ${scoresError.message}`);
   }
   if (!scores || scores.length === 0) {
-    return [];
+    return { items: [], hasMore: false };
   }
 
   const stockIds = scores.map((s) => s.stock_id);
 
-  // stocks 정보, ranking_history, 최신 거래량을 병렬 조회
-  const [stocksResult, historyResult, ohlcvResult] = await Promise.all([
+  // stocks 정보, 순위 맵(최신+직전), 최신 거래량을 병렬 조회
+  const [stocksResult, rankMaps, ohlcvResult] = await Promise.all([
     supabase
       .from('stocks')
       .select('id, code, name, price, change, change_rate, rank')
       .in('id', stockIds),
-    supabase
-      .from('ranking_history')
-      .select('stock_id, rank_date, rank')
-      .in('stock_id', stockIds)
-      .order('rank_date', { ascending: false })
-      .limit(stockIds.length * 2),
+    fetchRankMaps(supabase, stockIds),
     supabase
       .from('ohlcv')
       .select('stock_id, volume')
@@ -140,28 +145,14 @@ export async function fetchRankingList(limit = 50): Promise<RankingListItem[]> {
     }
   }
 
-  // 전일 순위 맵 구성: 각 종목의 가장 최신 날짜 이전 날짜의 rank를 previous로 사용
-  const historyRows = historyResult.data ?? [];
-  const byStock = new Map<string, Array<{ rank_date: string; rank: number }>>();
-  for (const row of historyRows) {
-    const existing = byStock.get(row.stock_id) ?? [];
-    existing.push({ rank_date: row.rank_date, rank: row.rank });
-    byStock.set(row.stock_id, existing);
-  }
-  const prevRankMap = new Map<string, number | null>();
-  for (const [stockId, rows] of byStock.entries()) {
-    rows.sort((a, b) => (a.rank_date > b.rank_date ? -1 : 1));
-    prevRankMap.set(stockId, rows[1]?.rank ?? null);
-  }
-
   // scores 순서 유지 (total 내림차순) + stockMap에 없는 항목 제외
   const result: RankingListItem[] = [];
   for (const score of scores) {
     const stockRow = stockMap.get(score.stock_id);
     if (!stockRow) continue;
 
-    const prevRank = prevRankMap.get(score.stock_id) ?? null;
-    const currentRank = stockRow.rank;
+    const prevRank = rankMaps.prevRankMap.get(score.stock_id) ?? null;
+    const currentRank = rankMaps.currentRankMap.get(score.stock_id) ?? null;
     const delta =
       prevRank !== null && currentRank !== null ? prevRank - currentRank : null;
 
@@ -189,7 +180,7 @@ export async function fetchRankingList(limit = 50): Promise<RankingListItem[]> {
     });
   }
 
-  return result;
+  return { items: result, hasMore: scores.length === limit };
 }
 
 // ---------------------------------------------------------------------------

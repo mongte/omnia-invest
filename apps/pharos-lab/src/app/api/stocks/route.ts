@@ -6,10 +6,12 @@
  *
  * Query params:
  *   - limit: 조회할 상위 종목 수 (기본값: 50)
+ *   - offset: 조회 시작 오프셋 (기본값: 0)
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseServer } from '@/shared/api/supabase-server';
+import { fetchRankMaps } from '@/shared/api/ranking-utils';
 import type { RankingListItem } from '@/shared/api/dashboard';
 import type { RankChange } from '@/entities/stock/types';
 
@@ -27,15 +29,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  const offsetParam = searchParams.get('offset');
+  const offset = offsetParam !== null ? parseInt(offsetParam, 10) : 0;
+
+  if (isNaN(offset) || offset < 0) {
+    return NextResponse.json(
+      { error: 'Invalid offset parameter' },
+      { status: 400 },
+    );
+  }
+
   try {
     const supabase = getSupabaseServer();
 
-    // stock_scores.total 내림차순 정렬 후 상위 N개 stock_id 획득
+    // stock_scores.total 내림차순 정렬 후 range로 페이지 조회
     const { data: scores, error: scoresError } = await supabase
       .from('stock_scores')
       .select('stock_id, fundamental, momentum, disclosure, institutional, total, score_descriptions')
       .order('total', { ascending: false })
-      .limit(limit);
+      .range(offset, offset + limit - 1);
 
     if (scoresError) {
       console.error('[GET /api/stocks] scores error:', scoresError.message);
@@ -46,24 +58,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     if (!scores || scores.length === 0) {
-      return NextResponse.json([], {
+      return NextResponse.json({ items: [], hasMore: false }, {
         headers: { 'Cache-Control': CACHE_CONTROL },
       });
     }
 
     const stockIds = scores.map((s) => s.stock_id);
 
-    const [stocksResult, historyResult] = await Promise.all([
+    const [stocksResult, rankMaps] = await Promise.all([
       supabase
         .from('stocks')
         .select('id, code, name, price, change, change_rate, rank')
         .in('id', stockIds),
-      supabase
-        .from('ranking_history')
-        .select('stock_id, rank_date, rank')
-        .in('stock_id', stockIds)
-        .order('rank_date', { ascending: false })
-        .limit(stockIds.length * 2),
+      fetchRankMaps(supabase, stockIds),
     ]);
 
     if (stocksResult.error) {
@@ -78,28 +85,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       (stocksResult.data ?? []).map((s) => [s.id, s]),
     );
 
-    // 전일 순위 맵 구성
-    const historyRows = historyResult.data ?? [];
-    const byStock = new Map<string, Array<{ rank_date: string; rank: number }>>();
-    for (const row of historyRows) {
-      const existing = byStock.get(row.stock_id) ?? [];
-      existing.push({ rank_date: row.rank_date, rank: row.rank });
-      byStock.set(row.stock_id, existing);
-    }
-    const prevRankMap = new Map<string, number | null>();
-    for (const [stockId, rows] of byStock.entries()) {
-      rows.sort((a, b) => (a.rank_date > b.rank_date ? -1 : 1));
-      prevRankMap.set(stockId, rows[1]?.rank ?? null);
-    }
-
     // scores 순서(total 내림차순) 유지
     const result: RankingListItem[] = [];
     for (const score of scores) {
       const stockRow = stockMap.get(score.stock_id);
       if (!stockRow) continue;
 
-      const prevRank = prevRankMap.get(score.stock_id) ?? null;
-      const currentRank = stockRow.rank;
+      const prevRank = rankMaps.prevRankMap.get(score.stock_id) ?? null;
+      const currentRank = rankMaps.currentRankMap.get(score.stock_id) ?? null;
       const delta =
         prevRank !== null && currentRank !== null ? prevRank - currentRank : null;
       const rankChange: RankChange | null =
@@ -126,7 +119,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    return NextResponse.json(result, {
+    return NextResponse.json({ items: result, hasMore: scores.length === limit }, {
       headers: { 'Cache-Control': CACHE_CONTROL },
     });
   } catch (err) {

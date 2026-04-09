@@ -9,7 +9,7 @@
  */
 
 import type { DisclosureEvent, OHLCVData, LlmSummaryData, RankingHistory } from '@/entities/stock/types';
-import type { RankingListItem, StockDetail } from './dashboard';
+import type { PaginatedRankingList, RankingListItem, StockDetail } from './dashboard';
 import {
   fetchRankingList,
   fetchStockDetail,
@@ -85,6 +85,9 @@ export async function fetchRankingHistoryClient(
  *
  * @param limit - 조회할 상위 종목 수 (기본값: 50)
  */
-export async function fetchRankingListClient(limit = 50): Promise<RankingListItem[]> {
-  return fetchRankingList(limit);
+export async function fetchRankingListClient(
+  limit = 50,
+  offset = 0,
+): Promise<PaginatedRankingList> {
+  return fetchRankingList(limit, offset);
 }

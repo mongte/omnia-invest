@@ -15,6 +15,7 @@ Deno.serve(async () => {
   const startTime = Date.now();
   try {
     await supabase.rpc("exec_sql", { query: "SELECT trading.cleanup_old_data()" });
+    await supabase.rpc("cleanup_ranking_history");
 
     await notifyDiscord({ jobName: "weekly-cleanup", status: "success", rows: 0, elapsedMs: Date.now() - startTime });
     return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });

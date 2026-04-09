@@ -25,7 +25,30 @@ AUTH_FILE = PROJECT_ROOT / '.claude/auth/kiwoom.env'
 SUPABASE_ENV_FILE = PROJECT_ROOT / 'apps/pharos-lab/.env.local'
 BASE_URL = 'https://api.kiwoom.com'
 DELAY_SEC = 0.8  # 200종목 대응: 0.5→0.8초 (rate limit 안전 마진)
-TOP_N = 200
+TOP_N = 500  # ETF/ETN/우선주 필터링 후 순수 주식 200+ 확보 목적
+
+
+# --- ETF/ETN/우선주 필터 ---
+
+_ETF_ETN_PREFIXES = (
+    "KODEX", "TIGER", "SOL", "ACE", "RISE", "PLUS", "HANARO",
+    "KIWOOM", "BNK", "WON", "TIME", "KoAct", "UNICORN", "1Q", "N2",
+)
+
+
+def _is_etf_etn_or_preferred(stock_code: str, corp_name: str) -> bool:
+    """ETF/ETN/우선주 여부 판별 — 수집 시점 필터링용."""
+    import re
+    if not re.match(r"^\d{6}$", stock_code):
+        return True
+    for prefix in _ETF_ETN_PREFIXES:
+        if corp_name.startswith(prefix):
+            return True
+    if "ETN" in corp_name:
+        return True
+    if corp_name.endswith("우"):
+        return True
+    return False
 
 
 # --- 유틸리티 ---
@@ -206,24 +229,30 @@ def run_pre_market(token: str, supabase_url: str, service_key: str) -> int:
             break
         time.sleep(DELAY_SEC)
 
-    ranking = ranking[:TOP_N]
-    print(f'  거래량급증 {len(ranking)}종목 수신')
+    print(f'  거래량급증 {len(ranking)}종목 수신 (필터 전)')
 
     # watch_universe UPSERT
     wu_records = []
-    for i, item in enumerate(ranking):
+    pure_rank = 0
+    for item in ranking:
         stock_code = item.get('stk_cd', '').strip()
+        corp_name = item.get('stk_nm', '').strip()
         if not stock_code:
             continue
+        if _is_etf_etn_or_preferred(stock_code, corp_name):
+            continue
+        pure_rank += 1
         wu_records.append({
             'stock_code': stock_code,
-            'corp_name': item.get('stk_nm', '').strip(),
+            'corp_name': corp_name,
             'market': 'KOSPI',
             'universe_type': 'volume_top200',
-            'rank': i + 1,
+            'rank': pure_rank,  # ETF/ETN/우선주 제외 후 순위 재할당
             'is_active': True,
             'selected_at': datetime.now().isoformat(),
         })
+
+    print(f'  순수 주식 {pure_rank}종목 (ETF/ETN/우선주 {len(ranking) - pure_rank}건 제외)')
 
     if wu_records:
         cnt = supabase_upsert(f'{supabase_url}/rest/v1/watch_universe', service_key, wu_records, on_conflict='stock_code,market,universe_type')
