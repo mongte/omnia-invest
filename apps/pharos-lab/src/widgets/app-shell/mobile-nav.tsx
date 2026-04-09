@@ -40,9 +40,27 @@ export function MobileNav() {
           </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 p-3">
-          {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+          {NAV_LINKS.map(({ href, label, icon: Icon, disabled }) => {
             const isActive =
-              pathname === href || pathname.startsWith(href + '/');
+              !disabled && (pathname === href || pathname.startsWith(href + '/'));
+
+            if (disabled) {
+              return (
+                <div
+                  key={href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium',
+                    'opacity-50 cursor-not-allowed text-muted-foreground'
+                  )}
+                  aria-disabled="true"
+                >
+                  <Icon className="size-4 shrink-0" aria-hidden="true" />
+                  <span className="flex-1">{label}</span>
+                  <span className="text-xs text-muted-foreground/60 font-normal">준비중</span>
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={href}

@@ -65,26 +65,15 @@ export function AppSidebar({ pathname, isCollapsed, onToggle }: AppSidebarProps)
 
         {/* 네비게이션 */}
         <nav className="flex flex-col gap-1 p-3 flex-1">
-          {NAV_LINKS.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href || pathname.startsWith(href + '/');
+          {NAV_LINKS.map(({ href, label, icon: Icon, disabled }) => {
+            const isActive = !disabled && (pathname === href || pathname.startsWith(href + '/'));
 
-            const linkEl = (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'flex items-center rounded-md py-2 text-sm font-medium transition-colors',
-                  isCollapsed ? 'justify-center px-2' : 'gap-3 px-3',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                )}
-                aria-label={isCollapsed ? label : undefined}
-              >
+            const itemContent = (
+              <>
                 <Icon className="size-4 shrink-0" aria-hidden="true" />
                 <span
                   className={cn(
-                    'transition-opacity duration-150 overflow-hidden whitespace-nowrap',
+                    'transition-opacity duration-150 overflow-hidden whitespace-nowrap flex-1',
                     isCollapsed
                       ? 'opacity-0 w-0 pointer-events-none'
                       : 'opacity-100 delay-150'
@@ -92,14 +81,54 @@ export function AppSidebar({ pathname, isCollapsed, onToggle }: AppSidebarProps)
                 >
                   {label}
                 </span>
+                {!isCollapsed && disabled && (
+                  <span className="text-xs text-muted-foreground/60 font-normal shrink-0">
+                    준비중
+                  </span>
+                )}
+              </>
+            );
+
+            const itemClassName = cn(
+              'flex items-center rounded-md py-2 text-sm font-medium transition-colors',
+              isCollapsed ? 'justify-center px-2' : 'gap-3 px-3',
+              disabled
+                ? 'opacity-50 cursor-not-allowed text-muted-foreground'
+                : isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            );
+
+            const linkEl = disabled ? (
+              <div
+                key={href}
+                className={itemClassName}
+                aria-label={isCollapsed ? label : undefined}
+                aria-disabled="true"
+              >
+                {itemContent}
+              </div>
+            ) : (
+              <Link
+                key={href}
+                href={href}
+                className={itemClassName}
+                aria-label={isCollapsed ? label : undefined}
+              >
+                {itemContent}
               </Link>
             );
 
             if (isCollapsed) {
               return (
                 <Tooltip key={href}>
-                  <TooltipTrigger asChild>{linkEl}</TooltipTrigger>
-                  <TooltipContent side="right">{label}</TooltipContent>
+                  <TooltipTrigger asChild>
+                    <div>{linkEl}</div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    {label}
+                    {disabled && ' (준비중)'}
+                  </TooltipContent>
                 </Tooltip>
               );
             }

@@ -13,6 +13,9 @@ export function LandingNav() {
           <span className="text-lg font-bold tracking-tight text-foreground">
             Pharos Lab
           </span>
+          <span className="border border-amber-500/30 bg-amber-500/10 text-amber-500 text-xs px-2 py-0.5 rounded-full">
+            Beta
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

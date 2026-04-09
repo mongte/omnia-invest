@@ -37,11 +37,11 @@ export async function fetchStockDetailClient(stockId: string): Promise<StockDeta
  * 공시 목록을 클라이언트 사이드에서 동적으로 조회합니다.
  *
  * @param stockId - 조회할 종목 ID
- * @param limit - 최대 조회 수 (기본값: 20)
+ * @param limit - 최대 조회 수 (기본값: 100)
  */
 export async function fetchDisclosuresClient(
   stockId: string,
-  limit = 20,
+  limit = 100,
 ): Promise<DisclosureEvent[]> {
   return fetchDisclosures(stockId, limit);
 }
@@ -61,9 +61,9 @@ export async function fetchLlmSummariesClient(
  * OHLCV 데이터를 클라이언트 사이드에서 동적으로 조회합니다.
  *
  * @param stockId - 조회할 종목 ID
- * @param days - 조회할 일수 (기본값: 90)
+ * @param days - 조회할 일수 (기본값: 365)
  */
-export async function fetchOhlcvClient(stockId: string, days = 90): Promise<OHLCVData[]> {
+export async function fetchOhlcvClient(stockId: string, days = 365): Promise<OHLCVData[]> {
   return fetchOhlcv(stockId, days);
 }
 

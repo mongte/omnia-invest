@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import { Clock } from 'lucide-react';
+import { Button } from '@/shared/ui/button';
 import {
   AccountSummary,
   PortfolioTable,
@@ -48,7 +51,25 @@ function WidgetCard({
 
 export function VirtualTradingView() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="relative flex flex-col gap-4">
+      {/* Coming Soon 오버레이 */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm bg-background/60 rounded-lg">
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 shadow-lg text-center max-w-sm">
+          <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+            <Clock className="size-7 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">Coming Soon</h2>
+            <p className="text-sm text-muted-foreground">가상 투자 기능을 준비 중입니다</p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard">대시보드로 돌아가기</Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* 기존 콘텐츠 (블러 처리됨) */}
+      <div className="pointer-events-none select-none flex flex-col gap-4">
       {/* 페이지 헤더 */}
       <div className="flex items-center justify-between">
         <div>
@@ -85,6 +106,7 @@ export function VirtualTradingView() {
         <WidgetCard title="백테스팅" className="overflow-visible">
           <BacktestChart />
         </WidgetCard>
+      </div>
       </div>
     </div>
   );

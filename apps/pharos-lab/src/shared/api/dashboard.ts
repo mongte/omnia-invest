@@ -260,11 +260,11 @@ export async function fetchRankingHistory(
  * 종목의 공시 목록을 조회합니다.
  *
  * @param stockId - 조회할 종목 ID
- * @param limit - 최대 조회 수 (기본값: 20)
+ * @param limit - 최대 조회 수 (기본값: 100)
  */
 export async function fetchDisclosures(
   stockId: string,
-  limit = 20,
+  limit = 100,
 ): Promise<DisclosureEvent[]> {
   const { data, error } = await supabase
     .from('disclosures')
@@ -322,15 +322,19 @@ export async function fetchLlmSummaries(
  * public.ohlcv 테이블을 사용합니다.
  *
  * @param stockId - 조회할 종목 ID
- * @param days - 조회할 일수 (기본값: 90)
+ * @param days - 조회할 일수 (기본값: 365)
  */
-export async function fetchOhlcv(stockId: string, days = 90): Promise<OHLCVData[]> {
+export async function fetchOhlcv(stockId: string, days = 365): Promise<OHLCVData[]> {
+  const fromDate = new Date();
+  fromDate.setDate(fromDate.getDate() - days);
+  const fromDateStr = fromDate.toISOString().split('T')[0];
+
   const { data, error } = await supabase
     .from('ohlcv')
     .select('trade_date, open, high, low, close, volume')
     .eq('stock_id', stockId)
-    .order('trade_date', { ascending: true })
-    .limit(days);
+    .gte('trade_date', fromDateStr)
+    .order('trade_date', { ascending: true });
 
   if (error) {
     throw new Error(`[dashboard] fetchOhlcv: ${error.message}`);

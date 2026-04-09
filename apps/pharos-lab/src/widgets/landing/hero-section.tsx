@@ -29,6 +29,7 @@ export function HeroSection() {
           {/* 배지 */}
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm text-primary">
             <Zap className="size-3.5" />
+            <span className="border border-amber-500/30 bg-amber-500/10 text-amber-500 text-xs px-2 py-0.5 rounded-full">Beta</span>
             <span>퀀트 기반 투자 분석 플랫폼</span>
           </div>
 
