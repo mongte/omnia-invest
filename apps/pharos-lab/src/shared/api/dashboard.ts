@@ -200,6 +200,106 @@ export async function fetchRankingList(
 }
 
 // ---------------------------------------------------------------------------
+// 종목 랭킹 검색
+// ---------------------------------------------------------------------------
+
+/**
+ * 종목명 또는 종목코드로 검색하여 RankingListItem[] 형태로 반환합니다.
+ *
+ * @param query - 검색 쿼리 (종목명 또는 종목코드)
+ * @returns 매칭된 종목 목록 (total 내림차순, 최대 20개)
+ */
+export async function fetchRankingSearch(query: string): Promise<RankingListItem[]> {
+  if (query.trim() === '') return [];
+
+  // 1. stocks 테이블에서 name/code ilike 필터로 매칭된 종목 조회
+  const { data: matchedStocks, error: stocksError } = await supabase
+    .from('stocks')
+    .select('id, code, name, price, change, change_rate, rank')
+    .or(`name.ilike.%${query}%,code.ilike.%${query}%`);
+
+  if (stocksError) {
+    throw new Error(`[dashboard] fetchRankingSearch stocks: ${stocksError.message}`);
+  }
+  if (!matchedStocks || matchedStocks.length === 0) return [];
+
+  const stockIds = matchedStocks.map((s) => s.id);
+
+  // 2. stock_scores, rankMaps, 최신 거래량을 병렬 조회
+  const [scoresResult, rankMaps, ohlcvResult] = await Promise.all([
+    supabase
+      .from('stock_scores')
+      .select('stock_id, fundamental, momentum, disclosure, institutional, total, score_descriptions')
+      .in('stock_id', stockIds),
+    fetchRankMaps(supabase, stockIds),
+    supabase
+      .from('ohlcv')
+      .select('stock_id, volume')
+      .in('stock_id', stockIds)
+      .order('trade_date', { ascending: false })
+      .limit(stockIds.length),
+  ]);
+
+  if (scoresResult.error) {
+    throw new Error(`[dashboard] fetchRankingSearch scores: ${scoresResult.error.message}`);
+  }
+
+  const scoreMap = new Map(
+    (scoresResult.data ?? []).map((s) => [s.stock_id, s]),
+  );
+
+  const volumeMap = new Map<string, number>();
+  for (const row of ohlcvResult.data ?? []) {
+    if (!volumeMap.has(row.stock_id)) {
+      volumeMap.set(row.stock_id, row.volume);
+    }
+  }
+
+  const stockMap = new Map(matchedStocks.map((s) => [s.id, s]));
+
+  // 3. score가 있는 종목만 RankingListItem으로 변환
+  const result: RankingListItem[] = [];
+  for (const stockId of stockIds) {
+    const stockRow = stockMap.get(stockId);
+    const score = scoreMap.get(stockId);
+    if (!stockRow || !score) continue;
+
+    const prevRank = rankMaps.prevRankMap.get(stockId) ?? null;
+    const currentRank = rankMaps.currentRankMap.get(stockId) ?? null;
+    const delta =
+      prevRank !== null && currentRank !== null ? prevRank - currentRank : null;
+
+    result.push({
+      id: stockRow.id,
+      code: stockRow.code,
+      name: stockRow.name,
+      price: stockRow.price,
+      change: stockRow.change,
+      changeRate: stockRow.change_rate,
+      rank: stockRow.rank,
+      score: {
+        fundamental: score.fundamental,
+        momentum: score.momentum,
+        disclosure: score.disclosure,
+        institutional: score.institutional,
+        total: score.total,
+      },
+      rankChange:
+        prevRank !== null
+          ? { previousRank: prevRank, delta }
+          : null,
+      volume: volumeMap.get(stockId) ?? null,
+      scoreDescriptions: score.score_descriptions ?? null,
+    });
+  }
+
+  // 4. total 내림차순 정렬 후 최대 20개 반환
+  return result
+    .sort((a, b) => b.score.total - a.score.total)
+    .slice(0, 20);
+}
+
+// ---------------------------------------------------------------------------
 // 종목별 상세 데이터 조회
 // ---------------------------------------------------------------------------
 

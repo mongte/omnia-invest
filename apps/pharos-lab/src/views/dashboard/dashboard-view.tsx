@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import {
   RankingList,
@@ -12,7 +12,11 @@ import type { PriceChartHandle } from '@/widgets/dashboard/price-chart';
 import { Skeleton, Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/shared/ui';
 import { HelpCircle } from 'lucide-react';
 import type { RankingListItem, PaginatedRankingList } from '@/shared/api/dashboard';
-import { fetchStockDetailClient, fetchRankingListClient } from '@/shared/api/dashboard-client';
+import {
+  fetchStockDetailClient,
+  fetchRankingListClient,
+  fetchRankingSearchClient,
+} from '@/shared/api/dashboard-client';
 
 const PAGE_SIZE = 50;
 
@@ -194,9 +198,57 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
 
   const [selectedStockId, setSelectedStockId] = useState<string>(defaultStockId);
   const [selectedDisclosureId, setSelectedDisclosureId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   // 차트 스크롤 연동용 ref
   const priceChartRef = useRef<PriceChartHandle>(null);
+
+  // ---------------------------------------------------------------------------
+  // 검색어 유효성 검사
+  // ---------------------------------------------------------------------------
+
+  type SearchHint =
+    | { type: 'whitespace'; message: string }
+    | { type: 'special-only'; message: string }
+    | { type: 'too-short'; message: string }
+    | { type: 'valid' };
+
+  function getSearchHint(query: string): SearchHint {
+    if (query.length === 0) return { type: 'valid' };
+    if (query.trim().length === 0) {
+      return { type: 'whitespace', message: '공백으로는 검색할 수 없습니다' };
+    }
+    const trimmed = query.trim();
+    // 한글, 영문, 숫자가 하나도 없으면 특수문자만
+    if (!/[가-힣a-zA-Z0-9]/.test(trimmed)) {
+      return { type: 'special-only', message: '종목명 또는 종목코드를 입력해주세요' };
+    }
+    if (trimmed.length < 2) {
+      return { type: 'too-short', message: '두 글자 이상 입력하면 검색됩니다' };
+    }
+    return { type: 'valid' };
+  }
+
+  const searchHint = getSearchHint(searchQuery);
+  const isQueryValid = searchHint.type === 'valid' && searchQuery.trim().length >= 2;
+
+  // 검색어 debounce (300ms) — 유효한 쿼리만 반영
+  useEffect(() => {
+    if (!isQueryValid) {
+      setDebouncedQuery('');
+      return;
+    }
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, isQueryValid]);
+
+  // 검색 useQuery
+  const { data: searchResults, isLoading: isSearching } = useQuery({
+    queryKey: ['stocks', 'search', debouncedQuery],
+    queryFn: () => fetchRankingSearchClient(debouncedQuery),
+    enabled: debouncedQuery.length > 0,
+  });
 
   // 랭킹 목록 무한 스크롤 — initialData로 서버 SSR 데이터 즉시 표시
   const {
@@ -295,6 +347,11 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
           onLoadMore={fetchNextPage}
           hasMore={hasNextPage ?? false}
           isLoadingMore={isFetchingNextPage}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchHint={searchHint.type !== 'valid' ? searchHint.message : null}
+          searchResults={isQueryValid ? (searchResults ?? []) : null}
+          isSearching={isQueryValid && (searchQuery.trim() !== debouncedQuery || isSearching)}
         />
       </WidgetCard>
 

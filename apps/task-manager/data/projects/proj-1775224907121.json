@@ -296,6 +296,25 @@
         }
       ],
       "assigneeId": "agent-fe-1"
+    },
+    {
+      "id": "task-17757473333N",
+      "title": "[BE] 종목 랭킹 검색 API 함수 추가",
+      "description": "**목표**:\nstocks 테이블에서 종목명/종목코드로 검색하는 fetchRankingSearch(query) 함수를 구현하여 랭킹 목록에서 종목 검색 기능을 지원한다.\n\n**요구사항**:\n1. apps/pharos-lab/src/shared/api/dashboard.ts에 fetchRankingSearch(query: string) 함수 추가\n2. stocks + stock_scores 테이블 조인하여 검색\n3. name ilike '%query%' OR code ilike '%query%' 필터 적용\n4. total 점수 내림차순 정렬\n5. 최대 20개 결과 반환\n6. 반환 타입: RankingListItem[]\n7. apps/pharos-lab/src/shared/api/dashboard-client.ts에 fetchRankingSearchClient(query: string) 클라이언트 래퍼 함수 추가\n\n**수락 기준**:\n- fetchRankingSearch('삼성') 호출 시 종목명에 '삼성'이 포함된 종목이 RankingListItem[] 타입으로 반환됨\n- fetchRankingSearch('005930') 호출 시 종목코드로 검색 결과 반환됨\n- 결과가 total 점수 내림차순으로 정렬됨\n- 최대 20개까지만 반환됨\n- fetchRankingSearchClient가 dashboard-client.ts에 존재하며 fetchRankingSearch를 올바르게 래핑함\n- npx tsc --noEmit 통과",
+      "status": "IN_REVIEW",
+      "comments": [],
+      "createdAt": "2026-04-09T15:08:53.279Z",
+      "updatedAt": "2026-04-09T15:12:07.158Z"
+    },
+    {
+      "id": "task-17757473523N",
+      "title": "[FE] 랭킹 목록 검색 UI 구현",
+      "description": "**목표**:\n랭킹 목록 위젯에 검색 인풋을 추가하여 사용자가 종목명/종목코드로 종목을 검색할 수 있게 한다.\n\n**요구사항**:\n1. apps/pharos-lab/src/widgets/dashboard/ranking-list.tsx에 검색 인풋 추가\n2. shadcn Input 컴포넌트 + Search 아이콘 사용\n3. 300ms debounce 적용하여 입력 시 과도한 API 호출 방지\n4. useQuery로 fetchRankingSearchClient(query) 호출\n5. 검색어가 있으면 검색 결과를 목록에 표시\n6. 검색어가 없으면 기존 무한스크롤 랭킹 목록 유지\n7. 검색 결과와 기존 목록 간 전환이 자연스럽게 이루어져야 함\n\n**수락 기준**:\n- 랭킹 목록 상단에 검색 인풋이 표시됨\n- '삼성' 입력 시 300ms 후 검색 결과가 목록에 표시됨\n- 종목코드 '005930' 입력 시 해당 종목이 검색됨\n- 검색어 제거(빈 문자열) 시 기존 무한스크롤 랭킹 목록으로 복귀\n- 검색 중 로딩 상태가 표시됨\n- Search 아이콘이 인풋 내에 표시됨\n\n**의존성**:\n- [BE] 종목 랭킹 검색 API 함수 추가 (task-17757473333N) 완료 후 작업 가능",
+      "status": "IN_REVIEW",
+      "comments": [],
+      "createdAt": "2026-04-09T15:09:12.352Z",
+      "updatedAt": "2026-04-09T15:16:34.773Z",
+      "assigneeId": "agent-fe-1"
     }
   ],
   "agents": [
@@ -309,7 +328,12 @@
     {
       "id": "agent-fe-1",
       "status": "IDLE",
-      "lastActiveAt": "2026-04-04T14:21:37.000Z"
+      "lastActiveAt": "2026-04-09T15:16:34.000Z"
+    },
+    {
+      "id": "agent-be-1",
+      "status": "IDLE",
+      "lastActiveAt": "2026-04-09T15:12:07.000Z"
     }
   ]
 }

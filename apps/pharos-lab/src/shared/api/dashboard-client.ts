@@ -12,6 +12,7 @@ import type { DisclosureEvent, OHLCVData, LlmSummaryData, RankingHistory } from 
 import type { PaginatedRankingList, RankingListItem, StockDetail } from './dashboard';
 import {
   fetchRankingList,
+  fetchRankingSearch,
   fetchStockDetail,
   fetchDisclosures,
   fetchLlmSummaries,
@@ -90,4 +91,13 @@ export async function fetchRankingListClient(
   offset = 0,
 ): Promise<PaginatedRankingList> {
   return fetchRankingList(limit, offset);
+}
+
+/**
+ * 종목명 또는 종목코드로 랭킹 목록을 검색합니다.
+ *
+ * @param query - 검색 쿼리 (종목명 또는 종목코드)
+ */
+export async function fetchRankingSearchClient(query: string): Promise<RankingListItem[]> {
+  return fetchRankingSearch(query);
 }

@@ -7,4 +7,5 @@ export * from './scroll-area';
 export * from './sheet';
 export * from './tabs';
 export * from './skeleton';
+export * from './input';
 export * from './charts';
