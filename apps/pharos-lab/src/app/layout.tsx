@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { QueryProvider } from './providers/query-provider';
 import { SwRegister } from './providers/sw-register';
+import { AuthProvider } from '@/features/auth/ui/auth-provider';
+import { LoginModal } from '@/features/auth/ui/login-modal';
 import './globals.css';
 
 const geistSans = Geist({
@@ -31,7 +33,12 @@ export default function RootLayout({
     >
       <body className="h-full bg-background text-foreground">
         <SwRegister />
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+            <LoginModal />
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

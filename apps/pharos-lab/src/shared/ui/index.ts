@@ -9,3 +9,6 @@ export * from './tabs';
 export * from './skeleton';
 export * from './input';
 export * from './charts';
+export * from './dialog';
+export * from './dropdown-menu';
+export * from './avatar';

@@ -192,7 +192,7 @@ export async function fetchRankingList(
           ? { previousRank: prevRank, delta }
           : null,
       volume: volumeMap.get(score.stock_id) ?? null,
-      scoreDescriptions: score.score_descriptions ?? null,
+      scoreDescriptions: (score.score_descriptions as string[] | null) ?? null,
     });
   }
 
@@ -289,7 +289,7 @@ export async function fetchRankingSearch(query: string): Promise<RankingListItem
           ? { previousRank: prevRank, delta }
           : null,
       volume: volumeMap.get(stockId) ?? null,
-      scoreDescriptions: score.score_descriptions ?? null,
+      scoreDescriptions: (score.score_descriptions as string[] | null) ?? null,
     });
   }
 
@@ -340,7 +340,7 @@ export async function fetchStockScore(
     disclosure: data.disclosure,
     institutional: data.institutional,
     total: data.total,
-    scoreDescriptions: data.score_descriptions,
+    scoreDescriptions: data.score_descriptions as string[] | null,
   };
 }
 

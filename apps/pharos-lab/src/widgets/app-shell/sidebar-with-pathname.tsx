@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { AppSidebar } from './app-sidebar';
+import { useAuthGate } from '@/features/auth/lib/use-auth-gate';
 
 const STORAGE_KEY = 'sidebar-collapsed';
 
@@ -10,6 +11,7 @@ export function SidebarWithPathname() {
   const pathname = usePathname();
   // SSR hydration mismatch 방지: 초기값은 false(펼침)로 고정
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { guardedNavigate } = useAuthGate();
 
   // 마운트 후 localStorage에서 저장된 상태 반영
   useEffect(() => {
@@ -40,6 +42,7 @@ export function SidebarWithPathname() {
       pathname={pathname}
       isCollapsed={isCollapsed}
       onToggle={handleToggle}
+      onAuthGatedClick={guardedNavigate}
     />
   );
 }

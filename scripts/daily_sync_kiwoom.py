@@ -139,16 +139,20 @@ def supabase_get(url: str, service_key: str, params: str = '') -> list[dict]:
     return resp.json()
 
 
-def supabase_upsert(url: str, service_key: str, records: list[dict], on_conflict: str = '') -> int:
-    """Supabase REST UPSERT (trading 스키마)"""
+def supabase_upsert(url: str, service_key: str, records: list[dict], on_conflict: str = '', batch_size: int = 200) -> int:
+    """Supabase REST UPSERT (trading 스키마) — statement timeout 방지를 위해 배치 분할 전송"""
     if not records:
         return 0
     headers = trading_headers(service_key, prefer='resolution=merge-duplicates,return=minimal')
     target = f'{url}?on_conflict={on_conflict}' if on_conflict else url
-    resp = httpx.post(target, headers=headers, json=records, timeout=60)
-    if resp.status_code not in (200, 201):
-        raise Exception(f'Supabase UPSERT 실패: {resp.status_code} {resp.text[:200]}')
-    return len(records)
+    total = 0
+    for i in range(0, len(records), batch_size):
+        batch = records[i:i + batch_size]
+        resp = httpx.post(target, headers=headers, json=batch, timeout=60)
+        if resp.status_code not in (200, 201):
+            raise Exception(f'Supabase UPSERT 실패: {resp.status_code} {resp.text[:200]}')
+        total += len(batch)
+    return total
 
 
 def supabase_patch(url: str, service_key: str, data: dict) -> None:

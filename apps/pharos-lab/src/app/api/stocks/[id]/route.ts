@@ -151,7 +151,7 @@ export async function GET(
           },
       rankChange: null,
       volume: null,
-      scoreDescriptions: scoreRow?.score_descriptions ?? null,
+      scoreDescriptions: (scoreRow?.score_descriptions as string[] | null) ?? null,
     };
 
     const disclosures: DisclosureEvent[] = (disclosureResult.data ?? []).map((row) => ({

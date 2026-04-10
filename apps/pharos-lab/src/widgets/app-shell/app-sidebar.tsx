@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import {
   Tooltip,
@@ -9,15 +9,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/shared/ui/tooltip';
+import { UserMenu } from '@/features/auth/ui/user-menu';
 import { NAV_LINKS } from './nav-links';
 
 interface AppSidebarProps {
   pathname: string;
   isCollapsed: boolean;
   onToggle: () => void;
+  onAuthGatedClick: (href: string) => void;
 }
 
-export function AppSidebar({ pathname, isCollapsed, onToggle }: AppSidebarProps) {
+export function AppSidebar({
+  pathname,
+  isCollapsed,
+  onToggle,
+  onAuthGatedClick,
+}: AppSidebarProps) {
   return (
     <TooltipProvider delayDuration={200}>
       <aside
@@ -48,7 +55,12 @@ export function AppSidebar({ pathname, isCollapsed, onToggle }: AppSidebarProps)
         </Link>
 
         {/* 토글 버튼 */}
-        <div className={cn('flex border-b border-border', isCollapsed ? 'justify-center' : 'justify-end')}>
+        <div
+          className={cn(
+            'flex border-b border-border',
+            isCollapsed ? 'justify-center' : 'justify-end'
+          )}
+        >
           <button
             type="button"
             onClick={onToggle}
@@ -65,104 +77,114 @@ export function AppSidebar({ pathname, isCollapsed, onToggle }: AppSidebarProps)
 
         {/* 네비게이션 */}
         <nav className="flex flex-col gap-1 p-3 flex-1">
-          {NAV_LINKS.map(({ href, label, icon: Icon, disabled }) => {
-            const isActive = !disabled && (pathname === href || pathname.startsWith(href + '/'));
+          {NAV_LINKS.map(
+            ({ href, label, icon: Icon, disabled, authRequired }) => {
+              const isActive =
+                !disabled &&
+                !authRequired &&
+                (pathname === href || pathname.startsWith(href + '/'));
+              const isAuthActive =
+                authRequired &&
+                (pathname === href || pathname.startsWith(href + '/'));
 
-            const itemContent = (
-              <>
-                <Icon className="size-4 shrink-0" aria-hidden="true" />
-                <span
-                  className={cn(
-                    'transition-opacity duration-150 overflow-hidden whitespace-nowrap flex-1',
-                    isCollapsed
-                      ? 'opacity-0 w-0 pointer-events-none'
-                      : 'opacity-100 delay-150'
-                  )}
-                >
-                  {label}
-                </span>
-                {!isCollapsed && disabled && (
-                  <span className="text-xs text-muted-foreground/60 font-normal shrink-0">
-                    준비중
-                  </span>
-                )}
-              </>
-            );
-
-            const itemClassName = cn(
-              'flex items-center rounded-md py-2 text-sm font-medium transition-colors',
-              isCollapsed ? 'justify-center px-2' : 'gap-3 px-3',
-              disabled
-                ? 'opacity-50 cursor-not-allowed text-muted-foreground'
-                : isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            );
-
-            const linkEl = disabled ? (
-              <div
-                key={href}
-                className={itemClassName}
-                aria-label={isCollapsed ? label : undefined}
-                aria-disabled="true"
-              >
-                {itemContent}
-              </div>
-            ) : (
-              <Link
-                key={href}
-                href={href}
-                className={itemClassName}
-                aria-label={isCollapsed ? label : undefined}
-              >
-                {itemContent}
-              </Link>
-            );
-
-            if (isCollapsed) {
-              return (
-                <Tooltip key={href}>
-                  <TooltipTrigger asChild>
-                    <div>{linkEl}</div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
+              const itemContent = (
+                <>
+                  <Icon className="size-4 shrink-0" aria-hidden="true" />
+                  <span
+                    className={cn(
+                      'transition-opacity duration-150 overflow-hidden whitespace-nowrap flex-1',
+                      isCollapsed
+                        ? 'opacity-0 w-0 pointer-events-none'
+                        : 'opacity-100 delay-150'
+                    )}
+                  >
                     {label}
-                    {disabled && ' (준비중)'}
-                  </TooltipContent>
-                </Tooltip>
+                  </span>
+                  {!isCollapsed && disabled && (
+                    <span className="text-xs text-muted-foreground/60 font-normal shrink-0">
+                      준비중
+                    </span>
+                  )}
+                </>
               );
-            }
 
-            return linkEl;
-          })}
+              const itemClassName = cn(
+                'flex items-center rounded-md py-2 text-sm font-medium transition-colors',
+                isCollapsed ? 'justify-center px-2' : 'gap-3 px-3',
+                disabled
+                  ? 'opacity-50 cursor-not-allowed text-muted-foreground'
+                  : isActive || isAuthActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              );
+
+              let linkEl: React.ReactNode;
+
+              if (disabled) {
+                linkEl = (
+                  <div
+                    key={href}
+                    className={itemClassName}
+                    aria-label={isCollapsed ? label : undefined}
+                    aria-disabled="true"
+                  >
+                    {itemContent}
+                  </div>
+                );
+              } else if (authRequired) {
+                linkEl = (
+                  <button
+                    key={href}
+                    type="button"
+                    className={cn(itemClassName, 'w-full text-left')}
+                    aria-label={isCollapsed ? label : undefined}
+                    onClick={() => onAuthGatedClick(href)}
+                  >
+                    {itemContent}
+                  </button>
+                );
+              } else {
+                linkEl = (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={itemClassName}
+                    aria-label={isCollapsed ? label : undefined}
+                  >
+                    {itemContent}
+                  </Link>
+                );
+              }
+
+              if (isCollapsed) {
+                return (
+                  <Tooltip key={href}>
+                    <TooltipTrigger asChild>
+                      <div>{linkEl}</div>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {label}
+                      {disabled && ' (준비중)'}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              return linkEl;
+            }
+          )}
         </nav>
 
-        {/* 하단 영역 */}
+        {/* 하단 사용자 영역 */}
         <div className="border-t border-border p-3 flex flex-col gap-1">
-          {/* 사용자 버튼 */}
-          <button
-            type="button"
+          <div
             className={cn(
-              'flex items-center rounded-md py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full',
+              'flex items-center rounded-md py-2',
               isCollapsed ? 'justify-center px-2' : 'gap-3 px-3'
             )}
-            aria-label="사용자 메뉴"
           >
-            <span className="inline-flex items-center justify-center rounded-full size-6 bg-secondary shrink-0">
-              <User className="size-3.5" aria-hidden="true" />
-            </span>
-            <span
-              className={cn(
-                'transition-opacity duration-150 overflow-hidden whitespace-nowrap',
-                isCollapsed
-                  ? 'opacity-0 w-0 pointer-events-none'
-                  : 'opacity-100 delay-150'
-              )}
-            >
-              사용자
-            </span>
-          </button>
-
+            <UserMenu />
+          </div>
         </div>
       </aside>
     </TooltipProvider>

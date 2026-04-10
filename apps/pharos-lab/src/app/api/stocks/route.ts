@@ -115,7 +115,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         },
         rankChange,
         volume: null,
-        scoreDescriptions: score.score_descriptions ?? null,
+        scoreDescriptions: (score.score_descriptions as string[] | null) ?? null,
       });
     }
 
