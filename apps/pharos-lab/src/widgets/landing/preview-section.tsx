@@ -46,12 +46,12 @@ export function PreviewSection() {
 
           {/* 대시보드 목업 콘텐츠 */}
           <div className="grid grid-cols-1 gap-0 lg:grid-cols-3">
-            {/* 왼쪽: 종목 랭킹 */}
+            {/* 왼쪽: 데일리 추천 랭킹 */}
             <div className="border-r border-border/30 bg-background/50 p-4">
               <div className="mb-3 flex items-center gap-2">
                 <TrendingUp className="size-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">
-                  퀀트 랭킹 Top 5
+                  데일리 추천 랭킹 Top 5
                 </span>
               </div>
               <div className="space-y-2">

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Button } from '@/shared/ui/button';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -8,6 +9,8 @@ interface ErrorProps {
 }
 
 export default function DashboardError({ error, reset }: ErrorProps) {
+  const [isRetrying, setIsRetrying] = useState(false);
+
   useEffect(() => {
     console.error('[DashboardPage] 서버 데이터 로드 실패:', error);
   }, [error]);
@@ -38,13 +41,16 @@ export default function DashboardError({ error, reset }: ErrorProps) {
           데이터베이스 연결에 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.
         </p>
       </div>
-      <button
+      <Button
         type="button"
-        onClick={reset}
-        className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+        loading={isRetrying}
+        onClick={() => {
+          setIsRetrying(true);
+          reset();
+        }}
       >
         다시 시도
-      </button>
+      </Button>
     </div>
   );
 }

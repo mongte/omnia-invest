@@ -38,9 +38,14 @@ export function LandingFooter() {
             </a>
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            © {currentYear} Pharos Lab. 퀀트 기반 투자 분석 플랫폼.
-          </p>
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">
+              © {currentYear} Pharos Lab. 퀀트 기반 투자 분석 플랫폼.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground/50">
+              본 서비스는 투자 참고 정보 제공이 목적이며, 특정 종목의 매수·매도를 권유하지 않습니다.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

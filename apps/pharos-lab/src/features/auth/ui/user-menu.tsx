@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,12 +21,18 @@ export function UserMenu() {
   const { open: openLoginModal } = useLoginModalStore();
   const router = useRouter();
   const { clear } = useAuthStore();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    const supabase = createSupabaseBrowser();
-    await supabase.auth.signOut();
-    clear();
-    router.refresh();
+    setIsLoggingOut(true);
+    try {
+      const supabase = createSupabaseBrowser();
+      await supabase.auth.signOut();
+      clear();
+      router.refresh();
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   if (isLoading) {
@@ -78,8 +85,15 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-          <LogOut className="mr-2 size-4" />
+        <DropdownMenuItem
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="cursor-pointer"
+        >
+          {isLoggingOut
+            ? <Loader2 className="mr-2 size-4 animate-spin" />
+            : <LogOut className="mr-2 size-4" />
+          }
           로그아웃
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Search, X } from 'lucide-react';
+import { Search, X, Star } from 'lucide-react';
 import type { RankingListItem } from '@/shared/api/dashboard';
 import { Input } from '@/shared/ui';
 import { cn } from '@/shared/lib/utils';
@@ -19,6 +19,11 @@ interface RankingListProps {
   searchHint: string | null; // 입력 안내 메시지 (유효하지 않은 쿼리일 때)
   searchResults: RankingListItem[] | null; // null이면 검색 모드 아님
   isSearching: boolean;
+  favoriteIds: Set<string>;
+  onToggleFavorite: (stockId: string) => void;
+  showFavoritesOnly: boolean;
+  onToggleShowFavorites: () => void;
+  isAuthenticated: boolean;
 }
 
 function ScoreBar({ score }: { score: number }) {
@@ -87,15 +92,31 @@ interface StockItemProps {
   rankBadge: React.ReactNode;
   selectedStockId: string;
   onSelectStock: (id: string) => void;
+  isFavorite: boolean;
+  onToggleFavorite: (id: string) => void;
 }
 
-function StockItem({ stock, rankBadge, selectedStockId, onSelectStock }: StockItemProps) {
+function StockItem({
+  stock,
+  rankBadge,
+  selectedStockId,
+  onSelectStock,
+  isFavorite,
+  onToggleFavorite,
+}: StockItemProps) {
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelectStock(stock.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelectStock(stock.id);
+        }
+      }}
       className={cn(
-        'w-full text-left px-3 py-2.5 rounded-md transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+        'w-full text-left px-3 py-2.5 rounded-md transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer',
         selectedStockId === stock.id && 'bg-accent',
       )}
     >
@@ -114,6 +135,25 @@ function StockItem({ stock, rankBadge, selectedStockId, onSelectStock }: StockIt
               </span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite(stock.id);
+                }}
+                className="p-0.5 rounded hover:bg-accent transition-colors"
+                aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+              >
+                <Star
+                  size={14}
+                  className={cn(
+                    'transition-colors',
+                    isFavorite
+                      ? 'text-yellow-400 fill-yellow-400'
+                      : 'text-muted-foreground',
+                  )}
+                />
+              </button>
               <span className="text-sm font-medium text-foreground tabular-nums">
                 {stock.price.toLocaleString()}
               </span>
@@ -147,7 +187,7 @@ function StockItem({ stock, rankBadge, selectedStockId, onSelectStock }: StockIt
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -163,11 +203,27 @@ export function RankingList({
   searchHint,
   searchResults,
   isSearching,
+  favoriteIds,
+  onToggleFavorite,
+  showFavoritesOnly,
+  onToggleShowFavorites,
+  isAuthenticated,
 }: RankingListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // 즐겨찾기 필터 적용 (검색 모드가 아닐 때만)
+  const displayStocks = showFavoritesOnly
+    ? stocks.filter((s) => favoriteIds.has(s.id))
+    : stocks;
+
+  // 검색 결과에도 즐겨찾기 필터 적용
+  const displaySearchResults =
+    searchResults !== null && showFavoritesOnly
+      ? searchResults.filter((s) => favoriteIds.has(s.id))
+      : searchResults;
+
   const rowVirtualizer = useVirtualizer({
-    count: stocks.length,
+    count: displayStocks.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 72,
     overscan: 5,
@@ -179,31 +235,57 @@ export function RankingList({
     const virtualItems = rowVirtualizer.getVirtualItems();
     const lastItem = virtualItems[virtualItems.length - 1];
     if (!lastItem) return;
-    if (lastItem.index >= stocks.length - 10 && hasMore && !isLoadingMore) {
+    if (lastItem.index >= displayStocks.length - 10 && hasMore && !isLoadingMore) {
       onLoadMore();
     }
-  }, [rowVirtualizer.getVirtualItems(), stocks.length, hasMore, isLoadingMore, onLoadMore, searchResults]);
+  }, [rowVirtualizer.getVirtualItems(), displayStocks.length, hasMore, isLoadingMore, onLoadMore, searchResults]);
 
   return (
     <div className="flex flex-col h-full">
-      {/* 검색 인풋 — 스크롤 영역 밖 고정 */}
-      <div className="relative shrink-0 mb-2">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
-        <Input
-          type="text"
-          placeholder="종목명 또는 종목코드 검색"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-8 pr-8 h-8 text-xs"
-        />
-        {searchQuery.length > 0 && (
+      {/* 검색 인풋 + 즐겨찾기 필터 버튼 — 스크롤 영역 밖 고정 */}
+      <div className="flex items-center gap-1.5 shrink-0 mb-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            type="text"
+            placeholder="종목명 또는 종목코드 검색"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-8 pr-8 h-8 text-xs"
+          />
+          {searchQuery.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="검색어 지우기"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+        {isAuthenticated && (
           <button
             type="button"
-            onClick={() => onSearchChange('')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="검색어 지우기"
+            onClick={onToggleShowFavorites}
+            className={cn(
+              'flex items-center justify-center size-8 rounded-md border border-input transition-colors shrink-0',
+              showFavoritesOnly
+                ? 'bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-700'
+                : 'bg-background hover:bg-accent',
+            )}
+            aria-label={showFavoritesOnly ? '전체 목록 보기' : '즐겨찾기만 보기'}
+            title={showFavoritesOnly ? '전체 목록 보기' : '즐겨찾기만 보기'}
           >
-            <X className="size-3.5" />
+            <Star
+              size={14}
+              className={cn(
+                'transition-colors',
+                showFavoritesOnly
+                  ? 'text-yellow-400 fill-yellow-400'
+                  : 'text-muted-foreground',
+              )}
+            />
           </button>
         )}
       </div>
@@ -214,7 +296,7 @@ export function RankingList({
         <div className="flex-1 flex items-center justify-center">
           <p className="text-xs text-muted-foreground text-center px-4">{searchHint}</p>
         </div>
-      ) : searchResults !== null ? (
+      ) : displaySearchResults !== null ? (
         // 검색 모드
         <div className="flex-1 overflow-auto">
           {isSearching ? (
@@ -222,21 +304,25 @@ export function RankingList({
             <div className="flex justify-center items-center py-8">
               <div className="size-4 rounded-full border-2 border-muted border-t-primary animate-spin" />
             </div>
-          ) : searchResults.length === 0 ? (
+          ) : displaySearchResults.length === 0 ? (
             // 검색 결과 없음
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
               <Search className="size-5 opacity-40" />
-              <p className="text-sm">검색 결과가 없습니다</p>
+              <p className="text-sm">
+                {showFavoritesOnly ? '즐겨찾기한 검색 결과가 없습니다' : '검색 결과가 없습니다'}
+              </p>
             </div>
           ) : (
             // 검색 결과 목록 (score.total 내림차순으로 이미 정렬됨)
             <div className="flex flex-col">
-              {searchResults.map((stock, index) => (
+              {displaySearchResults.map((stock, index) => (
                 <StockItem
                   key={stock.id}
                   stock={stock}
                   selectedStockId={selectedStockId}
                   onSelectStock={onSelectStock}
+                  isFavorite={favoriteIds.has(stock.id)}
+                  onToggleFavorite={onToggleFavorite}
                   rankBadge={
                     <span
                       className={cn(
@@ -254,6 +340,13 @@ export function RankingList({
             </div>
           )}
         </div>
+      ) : showFavoritesOnly && displayStocks.length === 0 ? (
+        // 즐겨찾기 필터 활성 + 즐겨찾기 없음
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
+          <Star className="size-6 opacity-30" />
+          <p className="text-sm">즐겨찾기한 종목이 없습니다</p>
+          <p className="text-xs opacity-60">종목 옆 ★를 눌러 즐겨찾기를 추가하세요</p>
+        </div>
       ) : (
         // 기존 가상화 스크롤 모드
         <div ref={parentRef} className="flex-1 overflow-auto">
@@ -265,7 +358,7 @@ export function RankingList({
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const stock = stocks[virtualRow.index];
+              const stock = displayStocks[virtualRow.index];
               const index = virtualRow.index;
               return (
                 <div
@@ -283,6 +376,8 @@ export function RankingList({
                     stock={stock}
                     selectedStockId={selectedStockId}
                     onSelectStock={onSelectStock}
+                    isFavorite={favoriteIds.has(stock.id)}
+                    onToggleFavorite={onToggleFavorite}
                     rankBadge={
                       <>
                         <span

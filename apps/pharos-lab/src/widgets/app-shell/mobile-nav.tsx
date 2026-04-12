@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Menu, Loader2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -18,12 +18,27 @@ import { NAV_LINKS } from './nav-links';
 
 export function MobileNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const { guardedNavigate } = useAuthGate();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [isPending, startTransition] = useTransition();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isPending) setPendingHref(null);
+  }, [isPending]);
 
   const handleAuthGatedClick = (href: string) => {
-    closeRef.current?.click(); // Sheet 닫기
+    closeRef.current?.click();
     guardedNavigate(href);
+  };
+
+  const handleNavClick = (href: string) => {
+    closeRef.current?.click();
+    setPendingHref(href);
+    startTransition(() => {
+      router.push(href);
+    });
   };
 
   return (
@@ -96,11 +111,13 @@ export function MobileNav() {
             }
 
             return (
-              <Link
+              <button
                 key={href}
-                href={href}
+                type="button"
+                disabled={isPending}
+                onClick={() => handleNavClick(href)}
                 className={cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors w-full text-left relative',
                   isActive
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -108,7 +125,12 @@ export function MobileNav() {
               >
                 <Icon className="size-4 shrink-0" aria-hidden="true" />
                 {label}
-              </Link>
+                {pendingHref === href && (
+                  <span className="absolute inset-0 flex items-center justify-center rounded-md bg-accent/80">
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  </span>
+                )}
+              </button>
             );
           })}
         </nav>

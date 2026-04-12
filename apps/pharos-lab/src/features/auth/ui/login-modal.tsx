@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Globe, Mail, Loader2 } from 'lucide-react';
+import { Globe, Mail } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,17 +24,23 @@ export function LoginModal() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleGoogleLogin = async () => {
-    const supabase = createSupabaseBrowser();
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    setIsGoogleLoading(true);
+    try {
+      const supabase = createSupabaseBrowser();
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -96,8 +102,10 @@ export function LoginModal() {
             variant="outline"
             className="w-full"
             onClick={handleGoogleLogin}
+            loading={isGoogleLoading}
+            disabled={isLoading || isGoogleLoading}
           >
-            <Globe className="mr-2 size-4" />
+            {!isGoogleLoading && <Globe className="mr-2 size-4" />}
             Google로 계속하기
           </Button>
 
@@ -131,12 +139,13 @@ export function LoginModal() {
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              ) : (
-                <Mail className="mr-2 size-4" />
-              )}
+            <Button
+              type="submit"
+              className="w-full"
+              loading={isLoading}
+              disabled={isLoading || isGoogleLoading}
+            >
+              {!isLoading && <Mail className="mr-2 size-4" />}
               {mode === 'login' ? '이메일로 로그인' : '이메일로 회원가입'}
             </Button>
           </form>

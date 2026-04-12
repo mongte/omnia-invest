@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { MOCK_STOCKS } from '@/shared/lib/mock-data';
+import { Button } from '@/shared/ui/button';
+import { cn } from '@/shared/lib/utils';
 
 type TradeType = 'buy' | 'sell';
 
@@ -24,6 +26,7 @@ export function TradeForm() {
   const [quantity, setQuantity] = useState('10');
   const [price, setPrice] = useState(String(STOCK_SUGGESTIONS[0].price));
   const [toast, setToast] = useState<ToastState>({ visible: false, message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredSuggestions = STOCK_SUGGESTIONS.filter(
     (s) =>
@@ -47,11 +50,16 @@ export function TradeForm() {
   }
 
   function handleSubmit() {
-    const action = tradeType === 'buy' ? '매수' : '매도';
-    setToast({
-      visible: true,
-      message: `${selectedStock.name} ${Number(quantity).toLocaleString('ko-KR')}주 ${action} 주문이 접수되었습니다.`,
-    });
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setTimeout(() => {
+      const action = tradeType === 'buy' ? '매수' : '매도';
+      setToast({
+        visible: true,
+        message: `${selectedStock.name} ${Number(quantity).toLocaleString('ko-KR')}주 ${action} 주문이 접수되었습니다.`,
+      });
+      setIsSubmitting(false);
+    }, 500);
   }
 
   const isBuy = tradeType === 'buy';
@@ -158,18 +166,17 @@ export function TradeForm() {
       </div>
 
       {/* 제출 버튼 */}
-      <button
+      <Button
         type="button"
+        loading={isSubmitting}
         onClick={handleSubmit}
-        className={[
-          'w-full py-2.5 rounded-md text-sm font-semibold text-white transition-colors',
-          isBuy
-            ? 'bg-emerald-500 hover:bg-emerald-600'
-            : 'bg-red-500 hover:bg-red-600',
-        ].join(' ')}
+        className={cn(
+          'w-full py-2.5 text-sm font-semibold text-white',
+          isBuy ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'
+        )}
       >
         {isBuy ? '매수 주문' : '매도 주문'}
-      </button>
+      </Button>
     </div>
   );
 }

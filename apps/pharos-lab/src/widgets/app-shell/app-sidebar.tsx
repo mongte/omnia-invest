@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import {
   Tooltip,
@@ -25,6 +27,21 @@ export function AppSidebar({
   onToggle,
   onAuthGatedClick,
 }: AppSidebarProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isPending) setPendingHref(null);
+  }, [isPending]);
+
+  function handleNavClick(href: string) {
+    setPendingHref(href);
+    startTransition(() => {
+      router.push(href);
+    });
+  }
+
   return (
     <TooltipProvider delayDuration={200}>
       <aside
@@ -87,6 +104,8 @@ export function AppSidebar({
                 authRequired &&
                 (pathname === href || pathname.startsWith(href + '/'));
 
+              const isNavigating = pendingHref === href;
+
               const itemContent = (
                 <>
                   <Icon className="size-4 shrink-0" aria-hidden="true" />
@@ -145,14 +164,21 @@ export function AppSidebar({
                 );
               } else {
                 linkEl = (
-                  <Link
+                  <button
                     key={href}
-                    href={href}
-                    className={itemClassName}
+                    type="button"
+                    className={cn(itemClassName, 'w-full text-left relative')}
                     aria-label={isCollapsed ? label : undefined}
+                    disabled={isPending}
+                    onClick={() => handleNavClick(href)}
                   >
                     {itemContent}
-                  </Link>
+                    {isNavigating && (
+                      <span className="absolute inset-0 flex items-center justify-center rounded-md bg-accent/80">
+                        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                      </span>
+                    )}
+                  </button>
                 );
               }
 

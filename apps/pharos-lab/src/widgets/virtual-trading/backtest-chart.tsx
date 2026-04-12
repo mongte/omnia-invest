@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { MOCK_EQUITY_CURVE, MOCK_BACKTEST_TRADES } from '@/shared/lib/mock-data';
+import { Button } from '@/shared/ui/button';
 
 type Strategy = 'ma-crossover' | 'volume-surge' | 'score-threshold';
 
@@ -100,14 +101,14 @@ export function BacktestChart() {
         </div>
       </div>
 
-      <button
+      <Button
         type="button"
+        loading={isLoading}
+        className="w-full"
         onClick={handleRun}
-        disabled={isLoading}
-        className="w-full py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? '백테스트 실행 중...' : '백테스트 실행'}
-      </button>
+        백테스트 실행
+      </Button>
 
       {/* 로딩 */}
       {isLoading && (

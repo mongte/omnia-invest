@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useFavorites } from '@/features/favorites';
+import { useAuthStore } from '@/entities/user';
 import {
   RankingList,
   ScoreRadar,
@@ -200,6 +202,10 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
   const [selectedDisclosureId, setSelectedDisclosureId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  const { user } = useAuthStore();
+  const { favoriteIds, toggleFavorite } = useFavorites();
 
   // 차트 스크롤 연동용 ref
   const priceChartRef = useRef<PriceChartHandle>(null);
@@ -320,10 +326,11 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
   const displayStockName = displayStock?.name ?? '';
 
   return (
+    <>
     <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-4 h-full md:grid-rows-[7fr_3fr]">
-      {/* ① 종목 랭킹 — 좌상단 */}
+      {/* ① 데일리 추천 랭킹 — 좌상단 */}
       <WidgetCard
-        title="종목 랭킹"
+        title="데일리 추천 랭킹"
         tooltip={
           <div className="space-y-1.5">
             <p className="font-medium text-xs">종합 점수 기반 순위</p>
@@ -333,7 +340,10 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
               <li>ML 예측 (40%) — 5거래일 상승 확률</li>
             </ul>
             <p className="text-xs text-muted-foreground/80 border-t border-border/50 pt-1">
-              0~100점, 높을수록 매수 유리
+              0~100점, 높을수록 긍정적 신호
+            </p>
+            <p className="text-xs text-muted-foreground/60 border-t border-border/50 pt-1">
+              투자 참고 정보이며, 매수·매도를 권유하지 않습니다.
             </p>
           </div>
         }
@@ -352,6 +362,11 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
           searchHint={searchHint.type !== 'valid' ? searchHint.message : null}
           searchResults={isQueryValid ? (searchResults ?? []) : null}
           isSearching={isQueryValid && (searchQuery.trim() !== debouncedQuery || isSearching)}
+          favoriteIds={favoriteIds}
+          onToggleFavorite={toggleFavorite}
+          showFavoritesOnly={showFavoritesOnly}
+          onToggleShowFavorites={() => setShowFavoritesOnly((prev) => !prev)}
+          isAuthenticated={!!user}
         />
       </WidgetCard>
 
@@ -406,5 +421,9 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
         />
       </WidgetCard>
     </div>
+    <p className="mt-2 px-1 text-center text-xs text-muted-foreground/50">
+      본 서비스는 투자 참고 정보를 제공하며, 특정 종목의 매수·매도를 권유하지 않습니다. 투자 판단과 그에 따른 책임은 이용자 본인에게 있습니다.
+    </p>
+    </>
   );
 }

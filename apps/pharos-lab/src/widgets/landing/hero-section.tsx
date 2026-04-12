@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { Button } from '@/shared/ui/button';
+import { LinkButton } from '@/shared/ui/link-button';
 import { ArrowRight, TrendingUp, Zap, Database } from 'lucide-react';
 
 export function HeroSection() {
@@ -68,12 +68,10 @@ export function HeroSection() {
 
           {/* CTA 버튼 */}
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Button asChild size="lg" className="min-h-[44px] w-full sm:w-auto px-8">
-              <Link href="/dashboard">
-                대시보드 시작하기
-                <ArrowRight className="ml-2 size-4" />
-              </Link>
-            </Button>
+            <LinkButton href="/dashboard" size="lg" className="min-h-[44px] w-full sm:w-auto px-8">
+              대시보드 시작하기
+              <ArrowRight className="ml-2 size-4" />
+            </LinkButton>
             <Button
               asChild
               variant="outline"

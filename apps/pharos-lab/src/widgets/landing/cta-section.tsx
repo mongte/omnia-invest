@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { Button } from '@/shared/ui/button';
+import { LinkButton } from '@/shared/ui/link-button';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 export function CtaSection() {
@@ -30,12 +29,10 @@ export function CtaSection() {
           바로 확인하세요.
         </p>
 
-        <Button asChild size="lg" className="min-h-[48px] px-10 text-base">
-          <Link href="/dashboard">
-            대시보드 시작하기
-            <ArrowRight className="ml-2 size-5" />
-          </Link>
-        </Button>
+        <LinkButton href="/dashboard" size="lg" className="min-h-[48px] px-10 text-base">
+          대시보드 시작하기
+          <ArrowRight className="ml-2 size-5" />
+        </LinkButton>
       </div>
     </section>
   );

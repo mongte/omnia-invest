@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { Clock } from 'lucide-react';
-import { Button } from '@/shared/ui/button';
+import { LinkButton } from '@/shared/ui/link-button';
 import {
   AccountSummary,
   PortfolioTable,
@@ -62,9 +61,9 @@ export function VirtualTradingView() {
             <h2 className="text-xl font-bold tracking-tight text-foreground">Coming Soon</h2>
             <p className="text-sm text-muted-foreground">가상 투자 기능을 준비 중입니다</p>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dashboard">대시보드로 돌아가기</Link>
-          </Button>
+          <LinkButton href="/dashboard" variant="outline" size="sm">
+            대시보드로 돌아가기
+          </LinkButton>
         </div>
       </div>
 

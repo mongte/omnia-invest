@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Button } from '@/shared/ui/button';
+import { LinkButton } from '@/shared/ui/link-button';
 import { BarChart3 } from 'lucide-react';
 
 export function LandingNav() {
@@ -39,9 +39,9 @@ export function LandingNav() {
           </a>
         </nav>
 
-        <Button asChild size="sm">
-          <Link href="/dashboard">대시보드로 이동</Link>
-        </Button>
+        <LinkButton href="/dashboard" size="sm">
+          대시보드로 이동
+        </LinkButton>
       </div>
     </header>
   );
