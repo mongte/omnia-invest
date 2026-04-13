@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+
+const PROTECTED_ROUTES = ['/my-stocks', '/virtual-trading'];
 import { LogOut, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -20,6 +22,7 @@ export function UserMenu() {
   const { user, profile, isLoading } = useAuthStore();
   const { open: openLoginModal } = useLoginModalStore();
   const router = useRouter();
+  const pathname = usePathname();
   const { clear } = useAuthStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -29,7 +32,12 @@ export function UserMenu() {
       const supabase = createSupabaseBrowser();
       await supabase.auth.signOut();
       clear();
-      router.refresh();
+      const isProtected = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
+      if (isProtected) {
+        router.push('/');
+      } else {
+        router.refresh();
+      }
     } finally {
       setIsLoggingOut(false);
     }

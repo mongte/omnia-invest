@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { Toaster } from 'sonner';
 import { QueryProvider } from './providers/query-provider';
 import { SwRegister } from './providers/sw-register';
 import { AuthProvider } from '@/features/auth/ui/auth-provider';
@@ -37,6 +38,7 @@ export default function RootLayout({
           <AuthProvider>
             {children}
             <LoginModal />
+            <Toaster richColors theme="dark" position="bottom-right" />
           </AuthProvider>
         </QueryProvider>
       </body>

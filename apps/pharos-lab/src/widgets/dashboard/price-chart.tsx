@@ -10,6 +10,8 @@ interface PriceChartProps {
   disclosures: DisclosureEvent[];
   selectedDisclosureId: string | null;
   onSelectDisclosure: (id: string) => void;
+  /** 매수가 수평 점선 표시 (optional) */
+  avgPrice?: number;
 }
 
 export interface PriceChartHandle {
@@ -85,7 +87,7 @@ type CreateSeriesMarkersFn = Awaited<typeof import('lightweight-charts')>['creat
 
 export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
   function PriceChart(
-    { ohlcv, disclosures, selectedDisclosureId, onSelectDisclosure },
+    { ohlcv, disclosures, selectedDisclosureId, onSelectDisclosure, avgPrice },
     ref
   ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -142,7 +144,7 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
     let cleanup: (() => void) | undefined;
 
     void import('lightweight-charts').then(
-      ({ createChart, CandlestickSeries, createSeriesMarkers }) => {
+      ({ createChart, CandlestickSeries, createSeriesMarkers, LineStyle }) => {
         if (cancelled || !containerRef.current) return;
 
         createSeriesMarkersRef.current = createSeriesMarkers;
@@ -197,6 +199,18 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
           }))
         );
 
+        // 매수가 점선
+        if (avgPrice && avgPrice > 0) {
+          series.createPriceLine({
+            price: avgPrice,
+            color: '#f59e0b',
+            lineWidth: 1,
+            lineStyle: LineStyle.Dashed,
+            axisLabelVisible: true,
+            title: '매수가',
+          });
+        }
+
         // 초기 마커 생성
         const markers = buildMarkers(disclosures, selectedIdRef.current);
         const markersPlugin = createSeriesMarkers(series, markers);
@@ -236,7 +250,7 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
       cancelled = true;
       cleanup?.();
     };
-  }, [ohlcv, disclosures, scrollToDisclosure]);
+  }, [ohlcv, disclosures, scrollToDisclosure, avgPrice]);
 
   // useEffect #2: 마커만 업데이트 (선택 변경 시 — 차트 재생성 없이)
   useEffect(() => {

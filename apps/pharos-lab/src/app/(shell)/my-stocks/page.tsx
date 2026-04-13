@@ -1,11 +1,15 @@
+import { MyStocksView } from '@/views/my-stocks/my-stocks-view';
+
 export default function MyStocksPage() {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
-      <h1 className="text-2xl font-bold">내 주식 관리</h1>
-      <p className="text-muted-foreground">
-        나만의 포트폴리오를 관리하고 분석하세요.
-      </p>
-      <p className="text-sm text-muted-foreground/60">준비중입니다.</p>
-    </div>
+    <main className="mx-auto max-w-5xl p-4 sm:p-6">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold">내 주식</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          보유 종목을 관리하고 pharos 신호를 확인하세요
+        </p>
+      </div>
+      <MyStocksView />
+    </main>
   );
 }

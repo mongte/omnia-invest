@@ -314,6 +314,54 @@ export type Database = {
           },
         ]
       }
+      user_holdings: {
+        Row: {
+          id: string
+          user_id: string
+          stock_id: string
+          quantity: number
+          avg_price: number
+          purchased_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          stock_id: string
+          quantity: number
+          avg_price: number
+          purchased_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          stock_id?: string
+          quantity?: number
+          avg_price?: number
+          purchased_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_holdings_stock_id_fkey"
+            columns: ["stock_id"]
+            isOneToOne: false
+            referencedRelation: "stocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_holdings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

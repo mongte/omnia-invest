@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Globe, Mail } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -56,16 +57,48 @@ export function LoginModal() {
           email,
           password,
         });
-        if (err) throw err;
+        if (err) {
+          if (err.message.toLowerCase().includes('email not confirmed')) {
+            throw new Error('이메일 인증이 필요합니다. 받은 편지함을 확인해 주세요.');
+          }
+          if (err.message.toLowerCase().includes('invalid login credentials')) {
+            throw new Error('이메일 또는 비밀번호가 올바르지 않습니다.');
+          }
+          throw err;
+        }
+        toast.success('로그인되었습니다.');
+        close();
+        router.refresh();
       } else {
-        const { error: err } = await supabase.auth.signUp({
+        const { data, error: err } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
         });
         if (err) throw err;
+
+        // 이미 가입된 이메일: Supabase가 identities 빈 배열인 fake user 반환
+        if (data.user && data.user.identities?.length === 0) {
+          setError('이미 등록된 이메일입니다. 로그인해 주세요.');
+          setMode('login');
+          return;
+        }
+
+        if (data.session) {
+          // 이메일 확인 없이 즉시 가입 완료
+          toast.success('회원가입이 완료되었습니다.');
+          close();
+          router.refresh();
+        } else {
+          // 이메일 인증 대기 중
+          close();
+          toast.success('인증 이메일을 발송했습니다. 받은 편지함을 확인해 주세요.', {
+            duration: 6000,
+          });
+        }
       }
-      close();
-      router.refresh();
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : '오류가 발생했습니다.';
