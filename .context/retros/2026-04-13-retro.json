@@ -1,0 +1,51 @@
+{
+  "period": "2026-04-06 to 2026-04-13",
+  "branch": "main",
+  "contributor": "dokyun.kim",
+  "mode": "solo",
+  "commits": 34,
+  "ai_assisted_commits": 17,
+  "ai_ratio": 0.5,
+  "loc": {
+    "insertions": 14300,
+    "deletions": 2151,
+    "net": 12149,
+    "note": "742K insertions excluded (키움 REST API PDF)"
+  },
+  "commit_types": {
+    "feat": 21,
+    "fix": 11,
+    "refactor": 1,
+    "chore": 1
+  },
+  "sessions": 17,
+  "peak_day": "2026-04-07 (18 commits)",
+  "peak_hours": [23, 20, 19, 0],
+  "hotspots": [
+    "runner.py (13)",
+    "dashboard.ts (8)",
+    "daily_sync_kiwoom.py (7)",
+    "scoring.py (7)",
+    "ranking-list.tsx (6)",
+    "dashboard-view.tsx (6)"
+  ],
+  "key_features": [
+    "3-Layer 동적 스코어링 시스템",
+    "ML 모델 훈련 및 피처 엔지니어링",
+    "Supabase 인증 시스템 통합",
+    "관심 종목 추가/제거",
+    "공시 유형 확장 및 차트-타임라인 연동",
+    "AI 공시 요약 배치 스크립트",
+    "Discord Webhook 알림",
+    "랭킹 검색 기능",
+    "랜딩 페이지 베타 배지"
+  ],
+  "skills_used": [
+    "plan-eng-review", "learn", "plan-design-review",
+    "plan-devex-review", "autoplan", "office-hours",
+    "plan-ceo-review", "qa", "review", "retro"
+  ],
+  "test_files_changed": 1,
+  "prs_merged": 0,
+  "direct_to_main": true
+}
