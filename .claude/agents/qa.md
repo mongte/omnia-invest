@@ -9,6 +9,7 @@ skills:
   - qa-agent
   - testing-qa
   - code-reviewer
+  - browse
 ---
 
 # QA Agent
@@ -75,6 +76,17 @@ apps/<APP_NAME>/e2e/<PROJECT_ID>/<TASK_ID>.spec.ts
 - Happy path와 Edge case 모두 포함
 - 실제 사용자 인터랙션 기반 테스트 (클릭, 입력, 내비게이션)
 - Task Manager 앱 실행 주소: `http://localhost:4200`
+
+### 5.5단계: gstack 시각 검증 (pharos-lab 태스크일 때)
+
+pharos-lab UI와 관련된 태스크라면 `/browse`로 시각 검증을 추가합니다:
+
+1. `http://localhost:3000`에서 해당 기능 페이지 탐색
+2. 스크린샷 촬영 — 수락 기준과 시각적으로 일치하는지 확인
+3. 브라우저 콘솔 에러 확인 (에러가 있으면 반려 사유에 포함)
+4. 반응형 확인 — 모바일 뷰포트에서도 기능 동작 확인
+
+dev 서버가 실행 중이지 않으면 이 단계는 스킵합니다.
 
 ### 6단계: 테스트 실행
 ```bash

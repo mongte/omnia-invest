@@ -7,6 +7,22 @@ Nx monorepo. 앱별 상세 가이드는 각 앱의 CLAUDE.md 참조.
 - **task-manager** — `apps/task-manager/CLAUDE.md`
 - **pharos-lab** — `apps/pharos-lab/CLAUDE.md`
 
+## Knowledge Base
+
+- 전체 목차: `doc/index.md`
+- 아키텍처: `doc/architecture/`
+- 실행 계획: `doc/plans/active/`
+- 품질 점수: `doc/quality/QUALITY_SCORE.md`
+- 기술 부채: `doc/plans/tech-debt-tracker.md`
+- 파이프라인 로그: `doc/quality/pipeline-log.jsonl`
+- 주간 트렌드: `doc/quality/weekly-trend.md`
+
+## Harness Pipeline
+
+- `/work [작업 내용]` — 구현→검증→QA→리뷰→수정→Ship 풀 파이프라인
+- `/agent gc` — 품질 점수 갱신 + 패턴 감지 + 규칙 자동 생성
+- `/retro` — 주간 레트로 + 트렌드 분석
+
 ## Common Rules
 - **파일을 읽기 전에 항상 `qmd`로 먼저 검색할 것**
 - Prettier (`singleQuote: true`), EditorConfig (2 spaces, UTF-8, LF)
