@@ -1,14 +1,12 @@
 'use client';
 
-import { Clock } from 'lucide-react';
-import { LinkButton } from '@/shared/ui/link-button';
-import {
-  AccountSummary,
-  PortfolioTable,
-  TradeForm,
-  AiSignals,
-  BacktestChart,
-} from '@/widgets/virtual-trading';
+import { useRef } from 'react';
+import { PortfolioSummary } from '@/widgets/virtual-trading/portfolio-summary';
+import { PortfolioTable } from '@/widgets/virtual-trading/portfolio-table';
+import { TradeForm } from '@/widgets/virtual-trading/trade-form';
+import { AiSignals } from '@/widgets/virtual-trading/ai-signals';
+import { EquityChart } from '@/widgets/virtual-trading/equity-chart';
+import { AutoTradeRules, type AutoTradeRulesHandle } from '@/widgets/virtual-trading/auto-trade-rules';
 
 function PremiumBadge() {
   return (
@@ -49,26 +47,14 @@ function WidgetCard({
 }
 
 export function VirtualTradingView() {
-  return (
-    <div className="relative flex flex-col gap-4">
-      {/* Coming Soon 오버레이 */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm bg-background/60 rounded-lg">
-        <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 shadow-lg text-center max-w-sm">
-          <div className="flex size-14 items-center justify-center rounded-full bg-muted">
-            <Clock className="size-7 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">Coming Soon</h2>
-            <p className="text-sm text-muted-foreground">가상 투자 기능을 준비 중입니다</p>
-          </div>
-          <LinkButton href="/dashboard" variant="outline" size="sm">
-            대시보드로 돌아가기
-          </LinkButton>
-        </div>
-      </div>
+  const autoRulesRef = useRef<AutoTradeRulesHandle>(null);
 
-      {/* 기존 콘텐츠 (블러 처리됨) */}
-      <div className="pointer-events-none select-none flex flex-col gap-4">
+  function handleOpenAutoRule(stock: { id: string; name: string; code: string }) {
+    autoRulesRef.current?.openSheet(stock);
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
       {/* 페이지 헤더 */}
       <div className="flex items-center justify-between">
         <div>
@@ -80,33 +66,46 @@ export function VirtualTradingView() {
         <PremiumBadge />
       </div>
 
-      {/* 상단: 계좌 요약 */}
-      <AccountSummary />
+      {/* AI 시그널 띠 (전체 폭) */}
+      <WidgetCard title="AI 시그널" noPadding>
+        <AiSignals onOpenAutoRule={handleOpenAutoRule} />
+      </WidgetCard>
 
-      {/* 중단: 포트폴리오 + 매매 폼 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <WidgetCard title="포트폴리오" className="lg:col-span-2" noPadding>
+      {/* 포트폴리오 요약 */}
+      <div className="rounded-lg border border-border bg-card p-4">
+        <PortfolioSummary />
+      </div>
+
+      {/* 2x2 그리드 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* 상단 좌: 포트폴리오 테이블 */}
+        <WidgetCard title="포트폴리오" noPadding className="min-h-[280px]">
           <div className="p-3">
             <PortfolioTable />
           </div>
         </WidgetCard>
-        <WidgetCard title="매매 실행">
+
+        {/* 상단 우: 매매 폼 */}
+        <WidgetCard title="매매 실행" className="min-h-[280px]">
           <TradeForm />
+        </WidgetCard>
+
+        {/* 하단 좌: 자산 커브 */}
+        <WidgetCard title="자산 추이 (30일)">
+          <EquityChart />
+        </WidgetCard>
+
+        {/* 하단 우: 자동매매 규칙 */}
+        <WidgetCard title="자동매매 규칙" className="min-h-[280px]">
+          <AutoTradeRules ref={autoRulesRef} />
         </WidgetCard>
       </div>
 
-      {/* 하단: AI 시그널 + 백테스팅 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <WidgetCard title="AI 매수/매도 시그널" className="min-h-[340px]" noPadding>
-          <div className="p-3 h-full">
-            <AiSignals />
-          </div>
-        </WidgetCard>
-        <WidgetCard title="백테스팅" className="overflow-visible">
-          <BacktestChart />
-        </WidgetCard>
-      </div>
-      </div>
+      {/* 면책 문구 */}
+      <p className="text-xs text-muted-foreground text-center py-2">
+        본 서비스는 투자 참고 정보를 제공하며, 특정 종목의 매수·매도를 권유하지 않습니다.
+        투자 판단과 그에 따른 책임은 이용자 본인에게 있습니다.
+      </p>
     </div>
   );
 }
