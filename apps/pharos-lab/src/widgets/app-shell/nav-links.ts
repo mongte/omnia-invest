@@ -11,6 +11,6 @@ export interface NavLink {
 
 export const NAV_LINKS: NavLink[] = [
   { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
-  { href: '/virtual-trading', label: '가상 투자', icon: TrendingUp, disabled: true },
+  { href: '/virtual-trading', label: '가상 투자', icon: TrendingUp },
   { href: '/my-stocks', label: '내 주식 관리', icon: Briefcase, authRequired: true },
 ];
