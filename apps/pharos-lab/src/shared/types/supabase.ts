@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      auto_trade_rules: {
+        Row: {
+          created_at: string | null
+          id: string
+          quantity: number
+          rule_type: string
+          status: string
+          stock_id: string | null
+          trigger_price: number | null
+          trigger_signal: string | null
+          triggered_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          quantity: number
+          rule_type: string
+          status?: string
+          stock_id?: string | null
+          trigger_price?: number | null
+          trigger_signal?: string | null
+          triggered_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          quantity?: number
+          rule_type?: string
+          status?: string
+          stock_id?: string | null
+          trigger_price?: number | null
+          trigger_signal?: string | null
+          triggered_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_trade_rules_stock_id_fkey"
+            columns: ["stock_id"]
+            isOneToOne: false
+            referencedRelation: "stocks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disclosures: {
         Row: {
           created_at: string
@@ -316,34 +363,34 @@ export type Database = {
       }
       user_holdings: {
         Row: {
-          id: string
-          user_id: string
-          stock_id: string
-          quantity: number
           avg_price: number
+          created_at: string | null
+          id: string
           purchased_at: string | null
-          created_at: string
-          updated_at: string
+          quantity: number
+          stock_id: string
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          stock_id: string
-          quantity: number
           avg_price: number
+          created_at?: string | null
+          id?: string
           purchased_at?: string | null
-          created_at?: string
-          updated_at?: string
+          quantity: number
+          stock_id: string
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          stock_id?: string
-          quantity?: number
           avg_price?: number
+          created_at?: string | null
+          id?: string
           purchased_at?: string | null
-          created_at?: string
-          updated_at?: string
+          quantity?: number
+          stock_id?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -353,11 +400,144 @@ export type Database = {
             referencedRelation: "stocks"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      virtual_equity_snapshots: {
+        Row: {
+          cash_balance: number
+          market_value: number
+          snapshot_date: string
+          total_equity: number
+          user_id: string
+        }
+        Insert: {
+          cash_balance: number
+          market_value: number
+          snapshot_date: string
+          total_equity: number
+          user_id: string
+        }
+        Update: {
+          cash_balance?: number
+          market_value?: number
+          snapshot_date?: string
+          total_equity?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      virtual_orders: {
+        Row: {
+          executed_at: string | null
+          id: string
+          order_type: string
+          price: number
+          quantity: number
+          rule_id: string | null
+          side: string
+          stock_id: string | null
+          total_amount: number
+          user_id: string | null
+        }
+        Insert: {
+          executed_at?: string | null
+          id?: string
+          order_type: string
+          price: number
+          quantity: number
+          rule_id?: string | null
+          side: string
+          stock_id?: string | null
+          total_amount: number
+          user_id?: string | null
+        }
+        Update: {
+          executed_at?: string | null
+          id?: string
+          order_type?: string
+          price?: number
+          quantity?: number
+          rule_id?: string | null
+          side?: string
+          stock_id?: string | null
+          total_amount?: number
+          user_id?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "user_holdings_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "virtual_orders_rule_id_fkey"
+            columns: ["rule_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "auto_trade_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "virtual_orders_stock_id_fkey"
+            columns: ["stock_id"]
+            isOneToOne: false
+            referencedRelation: "stocks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      virtual_portfolios: {
+        Row: {
+          cash_balance: number
+          created_at: string | null
+          initial_balance: number
+          reserved_cash: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cash_balance?: number
+          created_at?: string | null
+          initial_balance?: number
+          reserved_cash?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cash_balance?: number
+          created_at?: string | null
+          initial_balance?: number
+          reserved_cash?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      virtual_positions: {
+        Row: {
+          avg_cost: number
+          id: string
+          quantity: number
+          stock_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avg_cost: number
+          id?: string
+          quantity?: number
+          stock_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avg_cost?: number
+          id?: string
+          quantity?: number
+          stock_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "virtual_positions_stock_id_fkey"
+            columns: ["stock_id"]
+            isOneToOne: false
+            referencedRelation: "stocks"
             referencedColumns: ["id"]
           },
         ]
