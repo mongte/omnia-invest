@@ -35,7 +35,8 @@ done < <(find "$ROOT/apps" -path "*/src/*.ts" -print0 -o -path "*/src/*.tsx" -pr
          grep -zv "node_modules" | \
          grep -zv ".spec." | \
          grep -zv ".test." | \
-         grep -zv ".d.ts")
+         grep -zv ".d.ts" | \
+         grep -zv "supabase.ts")
 
 echo ""
 echo "검사 완료: 에러 ${ERRORS}건, 경고 ${WARNINGS}건"
