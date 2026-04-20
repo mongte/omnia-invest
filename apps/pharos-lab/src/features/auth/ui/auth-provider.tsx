@@ -20,7 +20,7 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
   console.log('[fetchProfile] response:', response.data, response.error);
 
   const data = response.data as ProfileRow | null;
