@@ -12,6 +12,24 @@
 **Priority:** P2
 **Depends on:** ScoreExplanation PR 완료
 
+## P1 — 가상투자 자동매매 엔진 (feat/virtual-trading에서 이월)
+
+### Edge Function: virtual-trading-engine
+**What:** `supabase/functions/virtual-trading-engine/index.ts` 구현 — 활성 `auto_trade_rules` 스캔 → `stocks.price`/`stock_scores.total`로 트리거 평가 → 체결 시 positions/orders/portfolio 원자적 업데이트 → 규칙 `triggered` 처리.
+**Why:** UI에 '지금 체크' 버튼이 있지만 백엔드 RPC가 없어 호출이 안 됨. 16:30 KST 배치 자동매매도 미작동 상태.
+**Pros:** 자동매매 규칙이 실제 동작, 배치 체결 가능.
+**Cons:** Edge Function 배포 + pg_cron 등록 + RPC 래핑 필요 (~1시간).
+**Context:** feat/virtual-trading에서 계획됐지만 범위 조정으로 이월. UI placeholder("지금 체크" 버튼)는 구현됨.
+**Effort:** M (CC+gstack ~1시간)
+**Priority:** P1
+**Depends on:** feat/virtual-trading merge 완료
+
+### Execute-Auto-Trades RPC 클라이언트 연결
+**What:** `shared/api/execute-auto-trades.ts` 생성 (RPC 래퍼) + `auto-trade-rules.tsx`의 '지금 체크' 버튼에 실제 호출 연결.
+**Why:** 현재 버튼이 toast 메시지만 표시하고 실제 체결 로직을 실행하지 않음.
+**Priority:** P1
+**Depends on:** virtual-trading-engine Edge Function 완료
+
 ## P1 — 봇 런타임 의존성
 
 ### requirements-analysis.txt에 python-telegram-bot 추가
