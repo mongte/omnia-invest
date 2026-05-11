@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(curl *)",
+      "WebFetch(domain:localhost)",
+      "Bash(bash /Users/aimmo-ai-0091/GitHub/omnia-invest/.claude/skills/task-manager-api/assets/task-api.sh update-status proj-1773998802853 task-1743609700002 IN_PROGRESS agent-fe-1)",
+      "Bash(bash /Users/aimmo-ai-0091/GitHub/omnia-invest/.claude/skills/task-manager-api/assets/task-api.sh add-comment proj-1773998802853 task-1743609700002 agent-fe-1 '[작업 시작] 태스크를 IN_PROGRESS로 전환합니다. 구현 계획: 1\\) shadcn AlertDialog 설치, 2\\) entities/task/model/store.ts에 deleteTask 액션 추가, 3\\) features/task-management/ui/TaskCard.tsx에 삭제 버튼 및 AlertDialog UI 추가')",
+      "Bash(npx shadcn@latest add alert-dialog --yes)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(bash list-projects:*)",
+      "Bash(bash list-tasks:*)",
+      "Bash(bash *task-api.sh*)",
+      "Read(*)",
+      "Write(*)",
+      "Bash(python3 -c ':*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
