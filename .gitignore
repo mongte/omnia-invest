@@ -57,6 +57,9 @@ build/
 # Auth credentials (never commit)
 .claude/auth/
 
+# Claude Code worktrees (machine-local)
+.claude/worktrees/
+
 # Environment variables
 .env
 .env*.local
@@ -64,6 +67,13 @@ build/
 .env.test.local
 .env.production.local
 .env.local
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
 
 # Vercel
 .vercel

@@ -177,6 +177,22 @@ def log_sync(supabase_url: str, service_key: str, job_name: str, status: str, ro
         print(f'[WARN] sync_log 기록 실패: {e}')
 
 
+def sync_public_ohlcv(supabase_url: str, service_key: str) -> None:
+    """trading.ohlcv_daily → public.ohlcv 동기화 (앱 차트 데이터 소스 갱신)"""
+    headers = trading_headers(service_key, prefer='return=minimal')
+    try:
+        resp = httpx.post(
+            f'{supabase_url}/rest/v1/rpc/sync_to_public_ohlcv',
+            headers=headers, json={}, timeout=120,
+        )
+        if resp.status_code not in (200, 204):
+            print(f'[WARN] public.ohlcv 동기화 실패: {resp.status_code} {resp.text[:200]}')
+        else:
+            print('  public.ohlcv 동기화 완료')
+    except Exception as e:
+        print(f'[WARN] public.ohlcv 동기화 실패: {e}')
+
+
 # --- pre-market Job ---
 
 def run_pre_market(token: str, supabase_url: str, service_key: str) -> int:
@@ -412,6 +428,8 @@ def run_post_market(token: str, supabase_url: str, service_key: str) -> int:
         cnt = supabase_upsert(f'{supabase_url}/rest/v1/ohlcv_daily', service_key, ohlcv_records, on_conflict='stock_code,market,trade_date')
         print(f'  ohlcv_daily UPSERT: {cnt}건')
         total_rows += cnt
+        # 앱 차트 데이터 소스(public.ohlcv) 동기화
+        sync_public_ohlcv(supabase_url, service_key)
 
     # 3. ka10001 기본정보 -> stock_fundamentals UPDATE (종가)
     print(f'  [3/3] ka10001 종가 업데이트 {len(stock_codes)}종목...')

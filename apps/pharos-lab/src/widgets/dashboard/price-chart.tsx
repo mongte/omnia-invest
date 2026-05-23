@@ -163,10 +163,29 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
           rightPriceScale: {
             borderColor: 'hsl(217.2 32.6% 17.5%)',
           },
+          localization: {
+            locale: 'ko-KR',
+            dateFormat: 'yyyy-MM-dd',
+          },
           timeScale: {
             borderColor: 'hsl(217.2 32.6% 17.5%)',
-            timeVisible: true,
+            visible: true,
+            timeVisible: false,
             secondsVisible: false,
+            fixLeftEdge: true,
+            fixRightEdge: true,
+            tickMarkFormatter: (time: Time) => {
+              if (typeof time === 'object' && time !== null && 'year' in time) {
+                const t = time as { year: number; month: number; day: number };
+                const mm = String(t.month).padStart(2, '0');
+                const dd = String(t.day).padStart(2, '0');
+                return `${t.year}-${mm}-${dd}`;
+              }
+              if (typeof time === 'string') {
+                return time;
+              }
+              return String(time);
+            },
           },
           handleScroll: { mouseWheel: true, pressedMouseMove: true },
           handleScale: { mouseWheel: true, pinch: true },
@@ -262,7 +281,7 @@ export const PriceChart = forwardRef<PriceChartHandle, PriceChartProps>(
   return (
     <div
       ref={containerRef}
-      className="w-full h-full min-h-[200px]"
+      className="w-full h-full overflow-hidden"
       aria-label="주가 캔들스틱 차트"
     />
   );

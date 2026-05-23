@@ -14,7 +14,9 @@
       "Bash(bash *task-api.sh*)",
       "Read(*)",
       "Write(*)",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Bash(gh run *)",
+      "Bash(python3 -c \"import json,sys; [print\\(r['databaseId'], r['createdAt'][:10], r['conclusion']\\) for r in json.load\\(sys.stdin\\)]\")"
     ]
   },
   "enableAllProjectMcpServers": true,

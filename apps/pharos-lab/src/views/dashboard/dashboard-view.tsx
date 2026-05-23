@@ -188,7 +188,7 @@ function DisclosureTimelineSkeleton() {
 }
 
 function PriceChartSkeleton() {
-  return <Skeleton className="w-full h-full min-h-[200px] rounded-lg" />;
+  return <Skeleton className="w-full h-full min-h-[420px] rounded-lg" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -327,7 +327,7 @@ export function DashboardView({ initialStocks }: DashboardViewProps) {
 
   return (
     <>
-    <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-4 h-full md:grid-rows-[7fr_3fr]">
+    <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-4 h-full md:grid-rows-[5fr_5fr]">
       {/* ① 데일리 추천 랭킹 — 좌상단 */}
       <WidgetCard
         title="데일리 추천 랭킹"

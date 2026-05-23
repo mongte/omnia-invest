@@ -88,11 +88,12 @@ export async function GET(
           .eq('stock_id', stockId)
           .order('disclosure_date', { ascending: false })
           .limit(disclosureLimit),
+        // 최근 N 거래일 조회 — 내림차순 + limit 후 아래에서 오름차순으로 되돌림
         supabase
           .from('ohlcv')
           .select('trade_date, open, high, low, close, volume')
           .eq('stock_id', stockId)
-          .order('trade_date', { ascending: true })
+          .order('trade_date', { ascending: false })
           .limit(ohlcvDays),
       ]);
 
@@ -163,14 +164,16 @@ export async function GET(
       importance: toImportance(row.importance),
     }));
 
-    const ohlcv: OHLCVData[] = (ohlcvResult.data ?? []).map((row) => ({
-      time: row.trade_date,
-      open: row.open,
-      high: row.high,
-      low: row.low,
-      close: row.close,
-      volume: row.volume,
-    }));
+    const ohlcv: OHLCVData[] = (ohlcvResult.data ?? [])
+      .map((row) => ({
+        time: row.trade_date,
+        open: row.open,
+        high: row.high,
+        low: row.low,
+        close: row.close,
+        volume: row.volume,
+      }))
+      .reverse();
 
     const rankingHistory: RankingHistory[] = (rankingResult.data ?? []).map((row) => ({
       date: row.rank_date,
