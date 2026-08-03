@@ -1,0 +1,230 @@
+{
+  "main": {
+    "id": "aedd2f58d5e7f2b7",
+    "type": "split",
+    "children": [
+      {
+        "id": "134b1231fe57643f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "14560b08f02e66d4",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "pharos-lab/wiki/데이터 파이프라인과 Supabase.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "데이터 파이프라인과 Supabase"
+            }
+          }
+        ]
+      },
+      {
+        "id": "f81db22a6ecb6fea",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ae8b7d042a50e8cb",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "그래프 뷰"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "fc157393d6c4b472",
+    "type": "split",
+    "children": [
+      {
+        "id": "0097defb6508aa71",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8c0c099366ee41b8",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "파일 탐색기"
+            }
+          },
+          {
+            "id": "935db8717dbc97d0",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "검색"
+            }
+          },
+          {
+            "id": "927000e2b2634652",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "북마크"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "3d31650bf1254bd6",
+    "type": "split",
+    "children": [
+      {
+        "id": "0f45c8352cd28e5f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0425694f8a00f1e9",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "pharos-lab/raw.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "raw 의 백링크"
+            }
+          },
+          {
+            "id": "f8a36e2ec2906b8f",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "pharos-lab/raw.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "raw 의 나가는 링크"
+            }
+          },
+          {
+            "id": "cb42530ffa59c813",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "태그"
+            }
+          },
+          {
+            "id": "00a5b0ff1aad4105",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "모든 속성"
+            }
+          },
+          {
+            "id": "e2e701a3e40c2fee",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "pharos-lab/raw.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "raw 의 개요"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:빠른 전환기 열기": false,
+      "graph:그래프 뷰 열기": false,
+      "canvas:새 캔버스 만들기": false,
+      "daily-notes:오늘의 일일 노트 열기": false,
+      "templates:템플릿 삽입": false,
+      "command-palette:명령어 팔레트 열기": false,
+      "bases:새 베이스 생성하기": false
+    }
+  },
+  "active": "14560b08f02e66d4",
+  "lastOpenFiles": [
+    "pharos-lab/wiki/인덱스 (MOC).md",
+    "pharos-lab/wiki/투자 도메인 규칙.md",
+    "pharos-lab/wiki/FSD 앱 구조.md",
+    "pharos-lab/wiki/제품 개요와 스택.md",
+    "pharos-lab/wiki/데이터 파이프라인과 Supabase.md",
+    "pharos-lab/raw.md",
+    "pharos-lab/graphify-out",
+    "pharos-lab/CLAUDE.md",
+    "pharos-lab/raw/scoring-system.md",
+    "pharos-lab/raw/pharos-lab-readme.md",
+    "pharos-lab/raw/pharos-lab-claude.md",
+    "pharos-lab/raw/pharos-lab-agents.md",
+    "pharos-lab/raw/pharos-fsd-skill.md",
+    "pharos-lab/raw/pharos-domain-skill.md",
+    "pharos-lab/raw/fsd-layers.md",
+    "pharos-lab/raw/data-pipeline.md",
+    "pharos-lab/raw",
+    "task-manager/wiki",
+    "task-manager/raw",
+    "pharos-lab/wiki",
+    "환영합니다!.md",
+    "task-manager",
+    "pharos-lab"
+  ]
+}

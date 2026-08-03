@@ -4,14 +4,6 @@
 
 @AGENTS.md
 
-## 지식 위키 (LLM Wiki + Graphify)
-
-- KB: 모노레포 `omnia-invest-doc/pharos-lab/` (`raw/` + `wiki/`)
-- Graphify 지도: 모노레포 루트 `graphify-out/GRAPH_REPORT.md` → `graph.json` / `graphify query`
-- 그래프 없을 때: `omnia-invest-doc/pharos-lab/wiki/인덱스 (MOC).md`에서 관련 노트만
-- `raw/` wholesale-read 금지. 빌드 경로: 모노레포 루트에서 `./omnia-invest-doc/pharos-lab`
-- 운영 규칙 상세: `omnia-invest-doc/pharos-lab/CLAUDE.md`
-
 ## 기술 스택
 
 | 레이어 | 기술 |

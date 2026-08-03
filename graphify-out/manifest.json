@@ -1,0 +1,72 @@
+{
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/CLAUDE.md": {
+    "mtime": 1785384862.1276615,
+    "ast_hash": "d382547831cfd6ad7ddbab4575151b51",
+    "semantic_hash": "d382547831cfd6ad7ddbab4575151b51"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/raw/data-pipeline.md": {
+    "mtime": 1785384812.4374213,
+    "ast_hash": "45400ae147092c2b8b0def2efd313f1e",
+    "semantic_hash": "45400ae147092c2b8b0def2efd313f1e"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/raw/fsd-layers.md": {
+    "mtime": 1785384812.4389262,
+    "ast_hash": "15a0803bb872e9bbea62bac786f91732",
+    "semantic_hash": "15a0803bb872e9bbea62bac786f91732"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/raw/pharos-domain-skill.md": {
+    "mtime": 1785384812.446177,
+    "ast_hash": "3029aad5876ef8e3174dcc0dd5c208ef",
+    "semantic_hash": "3029aad5876ef8e3174dcc0dd5c208ef"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/raw/pharos-fsd-skill.md": {
+    "mtime": 1785384812.4474247,
+    "ast_hash": "b627f58af1757472cd13704b259c702c",
+    "semantic_hash": "b627f58af1757472cd13704b259c702c"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/raw/pharos-lab-agents.md": {
+    "mtime": 1785384812.4447873,
+    "ast_hash": "9a5784f719ac0d9c8e654754ad2b3c2b",
+    "semantic_hash": "9a5784f719ac0d9c8e654754ad2b3c2b"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/raw/pharos-lab-claude.md": {
+    "mtime": 1785384812.443421,
+    "ast_hash": "338d1ff18cda305b199db0f5b65ca5ee",
+    "semantic_hash": "338d1ff18cda305b199db0f5b65ca5ee"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/raw/pharos-lab-readme.md": {
+    "mtime": 1785384812.4420738,
+    "ast_hash": "290372ccf1cd6328ff6516d7b4798807",
+    "semantic_hash": "290372ccf1cd6328ff6516d7b4798807"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/raw/scoring-system.md": {
+    "mtime": 1785384812.4405887,
+    "ast_hash": "06092e7ebd6db26e0cfc1fe13f2412ad",
+    "semantic_hash": "06092e7ebd6db26e0cfc1fe13f2412ad"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/wiki/FSD \uc571 \uad6c\uc870.md": {
+    "mtime": 1785384862.1276157,
+    "ast_hash": "72bea22773b31dc170be7c3e9428921d",
+    "semantic_hash": "72bea22773b31dc170be7c3e9428921d"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/wiki/\ub370\uc774\ud130 \ud30c\uc774\ud504\ub77c\uc778\uacfc Supabase.md": {
+    "mtime": 1785384862.1275458,
+    "ast_hash": "2709843f8d5b0c03d91040ce4d0503bb",
+    "semantic_hash": "2709843f8d5b0c03d91040ce4d0503bb"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/wiki/\uc778\ub371\uc2a4 (MOC).md": {
+    "mtime": 1785384862.127637,
+    "ast_hash": "cece5fad211479e25fd098c24f86260b",
+    "semantic_hash": "cece5fad211479e25fd098c24f86260b"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/wiki/\uc81c\ud488 \uac1c\uc694\uc640 \uc2a4\ud0dd.md": {
+    "mtime": 1785384862.1274889,
+    "ast_hash": "432fa52d6e77fd7110f158ec6f54e353",
+    "semantic_hash": "432fa52d6e77fd7110f158ec6f54e353"
+  },
+  "/Users/mongte/github/omnia-invest/omnia-invest-doc/pharos-lab/wiki/\ud22c\uc790 \ub3c4\uba54\uc778 \uaddc\uce59.md": {
+    "mtime": 1785384862.1276612,
+    "ast_hash": "5f86ed76190c16d84608e4764c990367",
+    "semantic_hash": "5f86ed76190c16d84608e4764c990367"
+  }
+}

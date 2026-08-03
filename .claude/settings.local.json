@@ -16,7 +16,10 @@
       "Write(*)",
       "Bash(python3 -c ':*)",
       "Bash(gh run *)",
-      "Bash(python3 -c \"import json,sys; [print\\(r['databaseId'], r['createdAt'][:10], r['conclusion']\\) for r in json.load\\(sys.stdin\\)]\")"
+      "Bash(python3 -c \"import json,sys; [print\\(r['databaseId'], r['createdAt'][:10], r['conclusion']\\) for r in json.load\\(sys.stdin\\)]\")",
+      "Bash(vercel *)",
+      "Bash(npx vercel *)",
+      "Bash(npx --yes vercel *)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -17,6 +17,18 @@ Nx monorepo. 앱별 상세 가이드는 각 앱의 CLAUDE.md 참조.
 - 파이프라인 로그: `doc/quality/pipeline-log.jsonl`
 - 주간 트렌드: `doc/quality/weekly-trend.md`
 
+## 지식 위키 (LLM Wiki + Graphify) — pharos-lab
+
+- KB 단일 출처: `omnia-invest-doc/pharos-lab/` (`raw/` 원본, `wiki/` 가공 노트)
+- Graphify 결과: 모노레포 루트 `graphify-out/` (`GRAPH_REPORT.md`, `graph.json`)
+- 빌드: 모노레포 루트에서 `./omnia-invest-doc/pharos-lab` 대상 (`/graphify ./omnia-invest-doc/pharos-lab --obsidian` 등)
+
+### 질문에 답하기 전 (토큰 절약)
+1. `graphify-out/GRAPH_REPORT.md`를 먼저 읽는다.
+2. 더 깊은 탐색은 `graphify query "<질문>"` 또는 `graphify-out/graph.json`.
+3. 원본(`omnia-invest-doc/pharos-lab/raw/`) 전체를 매번 grep/read 하지 않는다.
+4. 그래프가 없으면 `omnia-invest-doc/pharos-lab/wiki/인덱스 (MOC).md`에서 시작해 관련 노트만 읽는다.
+
 ## Harness Pipeline
 
 - `/work [작업 내용]` — 구현→검증→QA→리뷰→수정→Ship 풀 파이프라인
